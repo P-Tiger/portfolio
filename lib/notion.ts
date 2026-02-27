@@ -131,7 +131,25 @@ export async function getPortfolioData(): Promise<PortfolioData> {
   const hasGold = rawAssets.some((a) => a.category === 'gold');
   const hasUsd = rawAssets.some((a) => a.category === 'usd');
 
-  const prices = await fetchAllPrices(cryptoIds, stockTickers, hasGold, hasUsd);
+  // Fetch ALL data in parallel: prices + crypto history + gold history + usd history
+  const allPromises: Promise<unknown>[] = [
+    fetchAllPrices(cryptoIds, stockTickers, hasGold, hasUsd),
+    hasGold ? fetchGoldHistory(30) : Promise.resolve([] as HistoryPoint[]),
+    hasUsd ? fetchUsdHistory(30) : Promise.resolve([] as HistoryPoint[]),
+    ...cryptoIds.map((id) => fetchCryptoHistory(id, 30).then((h) => ({ id, history: h }))),
+  ];
+
+  const allResults = await Promise.all(allPromises);
+  const prices = allResults[0] as Awaited<ReturnType<typeof fetchAllPrices>>;
+  const goldHistory = allResults[1] as HistoryPoint[];
+  const usdHistory = allResults[2] as HistoryPoint[];
+
+  const cryptoHistoryMap = new Map<string, HistoryPoint[]>();
+  for (let i = 3; i < allResults.length; i++) {
+    const item = allResults[i] as { id: string; history: HistoryPoint[] };
+    if (item.history.length > 0) cryptoHistoryMap.set(item.id, item.history);
+  }
+
   const assets: Asset[] = rawAssets.map((raw) => resolvePrice(raw, prices));
 
   const totalValue = assets.reduce((sum, a) => sum + a.totalValue, 0);
@@ -165,19 +183,9 @@ export async function getPortfolioData(): Promise<PortfolioData> {
     })
     .sort((a, b) => b.value - a.value);
 
-  // Fetch crypto history once to share between overview + category charts
-  const cryptoHistoryMap = new Map<string, HistoryPoint[]>();
-  const historyPromises = cryptoIds.map(async (id) => {
-    const history = await fetchCryptoHistory(id, 30);
-    if (history.length > 0) cryptoHistoryMap.set(id, history);
-  });
-  await Promise.all(historyPromises);
-
-  // Build performance history from shared crypto history
+  // Build performance history from shared data (no extra fetches)
   const performanceHistory = buildPerformanceHistory(assets, cryptoHistoryMap);
-
-  // Build per-category performance history (reuses cryptoHistoryMap, no duplicate fetch)
-  const categoryPerformance = await buildCategoryPerformance(assets, cryptoHistoryMap, hasGold, hasUsd);
+  const categoryPerformance = buildCategoryPerformance(assets, cryptoHistoryMap, goldHistory, usdHistory);
 
   return {
     assets: assets.sort((a, b) => b.totalValue - a.totalValue),
@@ -244,12 +252,12 @@ function buildPerformanceHistory(
   return points;
 }
 
-async function buildCategoryPerformance(
+function buildCategoryPerformance(
   assets: Asset[],
   cryptoHistoryMap: Map<string, HistoryPoint[]>,
-  hasGold: boolean,
-  hasUsd: boolean,
-): Promise<Partial<Record<Category, PerformancePoint[]>>> {
+  goldHistory: HistoryPoint[],
+  usdHistory: HistoryPoint[],
+): Partial<Record<Category, PerformancePoint[]>> {
   const result: Partial<Record<Category, PerformancePoint[]>> = {};
 
   // Crypto: reuse shared cryptoHistoryMap (no duplicate CoinGecko calls)
@@ -284,44 +292,36 @@ async function buildCategoryPerformance(
     }
   }
 
-  // Gold: use fawazahmed0 historical XAU/VND
+  // Gold: use pre-fetched history
   const goldAssets = assets.filter((a) => a.category === 'gold');
-  if (hasGold && goldAssets.length > 0) {
-    const goldHistory = await fetchGoldHistory(30);
-    if (goldHistory.length >= 2) {
-      const totalQty = goldAssets.reduce((s, a) => s + a.quantity, 0);
-      const points: PerformancePoint[] = goldHistory.map((h) => ({
-        date: new Date(h.timestamp).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-        value: Math.round(totalQty * h.price),
-      }));
-      // Add current point
-      const goldNow = goldAssets.reduce((s, a) => s + a.totalValue, 0);
-      points.push({
-        date: new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-        value: Math.round(goldNow),
-      });
-      result.gold = points;
-    }
+  if (goldAssets.length > 0 && goldHistory.length >= 2) {
+    const totalQty = goldAssets.reduce((s, a) => s + a.quantity, 0);
+    const points: PerformancePoint[] = goldHistory.map((h) => ({
+      date: new Date(h.timestamp).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+      value: Math.round(totalQty * h.price),
+    }));
+    const goldNow = goldAssets.reduce((s, a) => s + a.totalValue, 0);
+    points.push({
+      date: new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+      value: Math.round(goldNow),
+    });
+    result.gold = points;
   }
 
-  // USD: use fawazahmed0 historical USD/VND
+  // USD: use pre-fetched history
   const usdAssets = assets.filter((a) => a.category === 'usd');
-  if (hasUsd && usdAssets.length > 0) {
-    const usdHistory = await fetchUsdHistory(30);
-    if (usdHistory.length >= 2) {
-      const totalQty = usdAssets.reduce((s, a) => s + a.quantity, 0);
-      const points: PerformancePoint[] = usdHistory.map((h) => ({
-        date: new Date(h.timestamp).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-        value: Math.round(totalQty * h.price),
-      }));
-      // Add current point
-      const usdNow = usdAssets.reduce((s, a) => s + a.totalValue, 0);
-      points.push({
-        date: new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-        value: Math.round(usdNow),
-      });
-      result.usd = points;
-    }
+  if (usdAssets.length > 0 && usdHistory.length >= 2) {
+    const totalQty = usdAssets.reduce((s, a) => s + a.quantity, 0);
+    const points: PerformancePoint[] = usdHistory.map((h) => ({
+      date: new Date(h.timestamp).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+      value: Math.round(totalQty * h.price),
+    }));
+    const usdNow = usdAssets.reduce((s, a) => s + a.totalValue, 0);
+    points.push({
+      date: new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+      value: Math.round(usdNow),
+    });
+    result.usd = points;
   }
 
   // Stock & Cash: no historical API available, skip

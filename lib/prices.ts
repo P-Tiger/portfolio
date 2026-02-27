@@ -19,6 +19,17 @@ const CRYPTO_ID_TO_TICKER: Record<string, string> = {
   toncoin: 'ton',
 };
 
+// ============ CACHING ============
+let priceCache: { data: PriceMap; timestamp: number } | null = null;
+const PRICE_CACHE_TTL = 30_000; // 30 seconds
+
+interface HistoryCacheEntry {
+  data: HistoryPoint[];
+  timestamp: number;
+}
+const historyCache = new Map<string, HistoryCacheEntry>();
+const HISTORY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 // ============ CRYPTO ============
 export async function fetchCryptoPrices(ids: string[]): Promise<PriceMap> {
   if (ids.length === 0) return {};
@@ -91,27 +102,35 @@ async function fetchCryptoFallback(ids: string[]): Promise<PriceMap> {
   return map;
 }
 
-// ============ VN STOCKS (CafeF) ============
+// ============ VN STOCKS (CafeF) - parallel exchange fetch ============
 export async function fetchStockPrices(tickers: string[]): Promise<PriceMap> {
   if (tickers.length === 0) return {};
   try {
     const map: PriceMap = {};
-    const remaining = new Set(tickers);
+    const tickerSet = new Set(tickers);
 
-    for (const center of [1, 2, 3]) {
-      if (remaining.size === 0) break;
-      const url = `https://banggia.cafef.vn/stockhandler.ashx?center=${center}`;
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) continue;
-      const data: Array<{ a: string; b: number; k: number; l: number }> = await res.json();
+    // Fetch all 3 exchanges in parallel
+    const exchanges = await Promise.all(
+      [1, 2, 3].map(async (center) => {
+        try {
+          const url = `https://banggia.cafef.vn/stockhandler.ashx?center=${center}`;
+          const res = await fetch(url, { cache: 'no-store' });
+          if (!res.ok) return [];
+          return (await res.json()) as Array<{ a: string; b: number; k: number; l: number }>;
+        } catch {
+          return [];
+        }
+      }),
+    );
+
+    for (const data of exchanges) {
       for (const item of data) {
         const ticker = item.a?.toUpperCase();
-        if (remaining.has(ticker)) {
+        if (tickerSet.has(ticker) && !map[ticker]) {
           const price = (item.b ?? item.l ?? 0) * 1000;
           const ref = (item.l ?? 0) * 1000;
           const change = ref > 0 ? ((price - ref) / ref) * 100 : 0;
           map[ticker] = { vnd: price, change24h: change };
-          remaining.delete(ticker);
         }
       }
     }
@@ -196,6 +215,12 @@ export interface HistoryPoint {
 }
 
 export async function fetchCryptoHistory(id: string, days: number = 30): Promise<HistoryPoint[]> {
+  const cacheKey = `crypto:${id}:${days}`;
+  const cached = historyCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < HISTORY_CACHE_TTL) {
+    return cached.data;
+  }
+
   // Try CoinGecko market_chart first (fine-grained: 5-min to daily)
   try {
     const url = `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=vnd&days=${days}`;
@@ -207,10 +232,12 @@ export async function fetchCryptoHistory(id: string, days: number = 30): Promise
       const data = await res.json();
       if (data.prices?.length) {
         console.log(`[prices] CoinGecko history OK: ${id} (${data.prices.length} points, ${days}d)`);
-        return data.prices.map((p: [number, number]) => ({
+        const points = data.prices.map((p: [number, number]) => ({
           timestamp: p[0],
           price: p[1],
         }));
+        historyCache.set(cacheKey, { data: points, timestamp: Date.now() });
+        return points;
       }
     }
   } catch (e) {
@@ -255,12 +282,22 @@ export async function fetchCryptoHistory(id: string, days: number = 30): Promise
     }
   }
 
-  console.log(`[prices] Fallback history for ${id}: ${points.length} data points`);
-  return points.sort((a, b) => a.timestamp - b.timestamp);
+  const sorted = points.sort((a, b) => a.timestamp - b.timestamp);
+  if (sorted.length > 0) {
+    historyCache.set(cacheKey, { data: sorted, timestamp: Date.now() });
+  }
+  console.log(`[prices] Fallback history for ${id}: ${sorted.length} data points`);
+  return sorted;
 }
 
 // ============ GOLD HISTORICAL (fawazahmed0 dated versions) ============
 export async function fetchGoldHistory(days: number = 30): Promise<HistoryPoint[]> {
+  const cacheKey = `gold:${days}`;
+  const cached = historyCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < HISTORY_CACHE_TTL) {
+    return cached.data;
+  }
+
   const points: HistoryPoint[] = [];
   const now = new Date();
   const sampleCount = Math.min(days, 10);
@@ -293,11 +330,21 @@ export async function fetchGoldHistory(days: number = 30): Promise<HistoryPoint[
   }
 
   console.log(`[prices] Gold history: ${points.length} data points`);
-  return points.sort((a, b) => a.timestamp - b.timestamp);
+  const sorted = points.sort((a, b) => a.timestamp - b.timestamp);
+  if (sorted.length > 0) {
+    historyCache.set(cacheKey, { data: sorted, timestamp: Date.now() });
+  }
+  return sorted;
 }
 
 // ============ USD HISTORICAL (fawazahmed0 dated versions) ============
 export async function fetchUsdHistory(days: number = 30): Promise<HistoryPoint[]> {
+  const cacheKey = `usd:${days}`;
+  const cached = historyCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < HISTORY_CACHE_TTL) {
+    return cached.data;
+  }
+
   const points: HistoryPoint[] = [];
   const now = new Date();
   const sampleCount = Math.min(days, 10);
@@ -329,16 +376,26 @@ export async function fetchUsdHistory(days: number = 30): Promise<HistoryPoint[]
   }
 
   console.log(`[prices] USD history: ${points.length} data points`);
-  return points.sort((a, b) => a.timestamp - b.timestamp);
+  const sorted = points.sort((a, b) => a.timestamp - b.timestamp);
+  if (sorted.length > 0) {
+    historyCache.set(cacheKey, { data: sorted, timestamp: Date.now() });
+  }
+  return sorted;
 }
 
-// ============ FETCH ALL PRICES ============
+// ============ FETCH ALL PRICES (cached 30s) ============
 export async function fetchAllPrices(
   cryptoIds: string[],
   stockTickers: string[],
   hasGold: boolean,
   hasUsd: boolean,
 ): Promise<PriceMap> {
+  const now = Date.now();
+  if (priceCache && now - priceCache.timestamp < PRICE_CACHE_TTL) {
+    console.log('[prices] Using cached prices (age:', Math.round((now - priceCache.timestamp) / 1000), 's)');
+    return priceCache.data;
+  }
+
   const promises: Promise<PriceMap>[] = [];
   promises.push(fetchCryptoPrices(cryptoIds));
   promises.push(fetchStockPrices(stockTickers));
@@ -348,5 +405,7 @@ export async function fetchAllPrices(
   const results = await Promise.all(promises);
   const merged = Object.assign({}, ...results);
   console.log(`[prices] All prices fetched: ${Object.keys(merged).length} items`);
+
+  priceCache = { data: merged, timestamp: Date.now() };
   return merged;
 }
