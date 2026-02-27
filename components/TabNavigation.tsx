@@ -1,0 +1,60 @@
+'use client';
+
+import { Category, CATEGORY_LABELS, CATEGORY_COLORS, ALL_CATEGORIES } from '@/lib/types';
+
+export type TabKey = 'overview' | Category;
+
+const TABS: { key: TabKey; label: string; color: string }[] = [
+  { key: 'overview', label: 'Tổng hợp', color: '#a78bfa' },
+  ...ALL_CATEGORIES.map((cat) => ({
+    key: cat as TabKey,
+    label: CATEGORY_LABELS[cat],
+    color: CATEGORY_COLORS[cat],
+  })),
+];
+
+interface Props {
+  active: TabKey;
+  onChange: (tab: TabKey) => void;
+  categoryCounts: Record<string, number>;
+}
+
+export function TabNavigation({ active, onChange, categoryCounts }: Props) {
+  return (
+    <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
+      {TABS.map((tab) => {
+        const isActive = active === tab.key;
+        const count = tab.key === 'overview' ? undefined : categoryCounts[tab.key];
+        return (
+          <button
+            key={tab.key}
+            onClick={() => onChange(tab.key)}
+            className={`
+              relative px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200
+              ${isActive ? 'text-white shadow-lg' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'}
+            `}
+            style={
+              isActive
+                ? {
+                    backgroundColor: `${tab.color}20`,
+                    boxShadow: `0 0 20px ${tab.color}15`,
+                  }
+                : undefined
+            }
+          >
+            {isActive && (
+              <span
+                className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full"
+                style={{ backgroundColor: tab.color }}
+              />
+            )}
+            {tab.label}
+            {count !== undefined && count > 0 && (
+              <span className={`ml-1.5 text-xs ${isActive ? 'text-zinc-300' : 'text-zinc-500'}`}>{count}</span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

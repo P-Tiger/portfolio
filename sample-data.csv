@@ -1,0 +1,8 @@
+Name,Category,Quantity,Buy Price,Symbol,Note
+Bitcoin (BTC),crypto,0.05,2500000000,bitcoin,Hold dài hạn
+Ethereum (ETH),crypto,1.2,82000000,ethereum,
+SJC 1 chỉ,gold,5,9200000,,Vàng miếng SJC
+USD tiền mặt,usd,2000,24800,,Giá quy đổi VND/USD
+VCB - Vietcombank,stock,500,88000,VCB,Cổ phiếu ngân hàng
+FPT Corporation,stock,200,120000,FPT,Cổ phiếu công nghệ
+Tiền mặt VND,cash,50000000,1,,Tiền gửi ngân hàng
