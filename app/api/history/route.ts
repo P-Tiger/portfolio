@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCachedAssets } from '@/lib/notion';
-import {
-  fetchAllPrices,
-  fetchCryptoHistory,
-  fetchGoldHistory,
-  fetchUsdHistory,
-  HistoryPoint,
-} from '@/lib/prices';
+import { fetchAllPrices, fetchCryptoHistory, fetchGoldHistory, fetchUsdHistory, HistoryPoint } from '@/lib/prices';
 import { AssetRaw, Category, PerformancePoint, PriceMap } from '@/lib/types';
 
 const TIMEFRAME_DAYS: Record<string, number> = {
@@ -67,21 +61,15 @@ export async function GET(request: NextRequest) {
 
     const rawAssets = await getCachedAssets();
 
-    const cryptoIds = rawAssets
-      .filter((a) => a.category === 'crypto' && a.symbol)
-      .map((a) => a.symbol.toLowerCase());
-    const stockTickers = rawAssets
-      .filter((a) => a.category === 'stock' && a.symbol)
-      .map((a) => a.symbol.toUpperCase());
+    const cryptoIds = rawAssets.filter((a) => a.category === 'crypto' && a.symbol).map((a) => a.symbol.toLowerCase());
+    const stockTickers = rawAssets.filter((a) => a.category === 'stock' && a.symbol).map((a) => a.symbol.toUpperCase());
     const hasGold = rawAssets.some((a) => a.category === 'gold');
     const hasUsd = rawAssets.some((a) => a.category === 'usd');
 
     const prices = await fetchAllPrices(cryptoIds, stockTickers, hasGold, hasUsd);
 
     const isOverview = cat === 'overview';
-    const targetCategories: Category[] = isOverview
-      ? ['crypto', 'gold', 'usd', 'stock', 'cash']
-      : [cat as Category];
+    const targetCategories: Category[] = isOverview ? ['crypto', 'gold', 'usd', 'stock', 'cash'] : [cat as Category];
 
     const relevantAssets = rawAssets.filter((a) => targetCategories.includes(a.category));
     if (relevantAssets.length === 0) {
@@ -198,10 +186,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function fetchCryptoHistories(
-  ids: string[],
-  days: number,
-): Promise<Map<string, HistoryPoint[]>> {
+async function fetchCryptoHistories(ids: string[], days: number): Promise<Map<string, HistoryPoint[]>> {
   const map = new Map<string, HistoryPoint[]>();
   await Promise.all(
     ids.map(async (id) => {

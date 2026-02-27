@@ -81,7 +81,9 @@ export function CategoryTab({ category, assets, performanceHistory }: Props) {
         </div>
       </div>
 
-      <PerformanceChart data={performanceHistory ?? []} title={`${label} Performance`} category={category} />
+      {category !== 'cash' && (
+        <PerformanceChart data={performanceHistory ?? []} title={`${label} Performance`} category={category} />
+      )}
 
       {assets.length > 1 && <PnlBarChart assets={assets} />}
       <AssetTable assets={assets} showCategory={false} />
