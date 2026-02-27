@@ -29,7 +29,6 @@ export function Dashboard({ data }: { data: PortfolioData }) {
           key={activeTab}
           category={activeTab as Category}
           assets={filteredAssets}
-          performanceHistory={data.categoryPerformance[activeTab as Category]}
         />
       )}
     </>

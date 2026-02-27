@@ -6,10 +6,9 @@ import {
   CategoryBreakdown,
   CATEGORY_COLORS,
   CATEGORY_LABELS,
-  PerformancePoint,
   PortfolioData,
 } from './types';
-import { fetchAllPrices, fetchCryptoHistory, fetchGoldHistory, fetchUsdHistory, HistoryPoint } from './prices';
+import { fetchAllPrices } from './prices';
 
 const notion = new Client({
   auth: process.env.NOTION_TOKEN,
@@ -133,25 +132,7 @@ export async function getPortfolioData(): Promise<PortfolioData> {
   const hasGold = rawAssets.some((a) => a.category === 'gold');
   const hasUsd = rawAssets.some((a) => a.category === 'usd');
 
-  // Fetch ALL data in parallel: prices + crypto history + gold history + usd history
-  const allPromises: Promise<unknown>[] = [
-    fetchAllPrices(cryptoIds, stockTickers, hasGold, hasUsd),
-    hasGold ? fetchGoldHistory(30) : Promise.resolve([] as HistoryPoint[]),
-    hasUsd ? fetchUsdHistory(30) : Promise.resolve([] as HistoryPoint[]),
-    ...cryptoIds.map((id) => fetchCryptoHistory(id, 30).then((h) => ({ id, history: h }))),
-  ];
-
-  const allResults = await Promise.all(allPromises);
-  const prices = allResults[0] as Awaited<ReturnType<typeof fetchAllPrices>>;
-  const goldHistory = allResults[1] as HistoryPoint[];
-  const usdHistory = allResults[2] as HistoryPoint[];
-
-  const cryptoHistoryMap = new Map<string, HistoryPoint[]>();
-  for (let i = 3; i < allResults.length; i++) {
-    const item = allResults[i] as { id: string; history: HistoryPoint[] };
-    if (item.history.length > 0) cryptoHistoryMap.set(item.id, item.history);
-  }
-
+  const prices = await fetchAllPrices(cryptoIds, stockTickers, hasGold, hasUsd);
   const assets: Asset[] = rawAssets.map((raw) => resolvePrice(raw, prices));
 
   const totalValue = assets.reduce((sum, a) => sum + a.totalValue, 0);
@@ -185,10 +166,6 @@ export async function getPortfolioData(): Promise<PortfolioData> {
     })
     .sort((a, b) => b.value - a.value);
 
-  // Build performance history from shared data (no extra fetches)
-  const performanceHistory = buildPerformanceHistory(assets, cryptoHistoryMap);
-  const categoryPerformance = buildCategoryPerformance(assets, cryptoHistoryMap, goldHistory, usdHistory);
-
   return {
     assets: assets.sort((a, b) => b.totalValue - a.totalValue),
     totalValue,
@@ -196,137 +173,6 @@ export async function getPortfolioData(): Promise<PortfolioData> {
     totalPnl,
     totalPnlPercent,
     categoryBreakdown,
-    performanceHistory,
-    categoryPerformance,
     lastUpdated: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
   };
-}
-
-function buildPerformanceHistory(
-  assets: Asset[],
-  cryptoHistoryMap: Map<string, HistoryPoint[]>,
-): PerformancePoint[] {
-  if (cryptoHistoryMap.size === 0) return [];
-
-  // Non-crypto assets have constant value (use current)
-  const nonCryptoValue = assets
-    .filter((a) => a.category !== 'crypto')
-    .reduce((sum, a) => sum + a.totalValue, 0);
-
-  // Crypto assets grouped by symbol
-  const cryptoAssets = assets.filter((a) => a.category === 'crypto' && a.symbol);
-
-  // Use the first crypto's timestamps as reference timeline
-  const refHistory = cryptoHistoryMap.values().next().value;
-  if (!refHistory || refHistory.length === 0) return [];
-
-  const points: PerformancePoint[] = [];
-  for (let i = 0; i < refHistory.length; i += Math.max(1, Math.floor(refHistory.length / 30))) {
-    const ts = refHistory[i].timestamp;
-    let cryptoValue = 0;
-
-    for (const asset of cryptoAssets) {
-      const history = cryptoHistoryMap.get(asset.symbol.toLowerCase());
-      if (!history) {
-        cryptoValue += asset.totalValue;
-        continue;
-      }
-      // Find closest price point
-      const closest = history.reduce((prev, curr) =>
-        Math.abs(curr.timestamp - ts) < Math.abs(prev.timestamp - ts) ? curr : prev,
-      );
-      cryptoValue += asset.quantity * closest.price;
-    }
-
-    points.push({
-      date: new Date(ts).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-      value: Math.round(cryptoValue + nonCryptoValue),
-    });
-  }
-
-  // Add current point
-  const totalNow = assets.reduce((s, a) => s + a.totalValue, 0);
-  points.push({
-    date: new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-    value: Math.round(totalNow),
-  });
-
-  return points;
-}
-
-function buildCategoryPerformance(
-  assets: Asset[],
-  cryptoHistoryMap: Map<string, HistoryPoint[]>,
-  goldHistory: HistoryPoint[],
-  usdHistory: HistoryPoint[],
-): Partial<Record<Category, PerformancePoint[]>> {
-  const result: Partial<Record<Category, PerformancePoint[]>> = {};
-
-  // Crypto: reuse shared cryptoHistoryMap (no duplicate CoinGecko calls)
-  const cryptoAssets = assets.filter((a) => a.category === 'crypto' && a.symbol);
-  if (cryptoAssets.length > 0 && cryptoHistoryMap.size > 0) {
-    const refHistory = cryptoHistoryMap.values().next().value;
-    if (refHistory && refHistory.length > 0) {
-      const points: PerformancePoint[] = [];
-      for (let i = 0; i < refHistory.length; i += Math.max(1, Math.floor(refHistory.length / 30))) {
-        const ts = refHistory[i].timestamp;
-        let total = 0;
-        for (const asset of cryptoAssets) {
-          const history = cryptoHistoryMap.get(asset.symbol.toLowerCase());
-          if (!history) { total += asset.totalValue; continue; }
-          const closest = history.reduce((prev, curr) =>
-            Math.abs(curr.timestamp - ts) < Math.abs(prev.timestamp - ts) ? curr : prev,
-          );
-          total += asset.quantity * closest.price;
-        }
-        points.push({
-          date: new Date(ts).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-          value: Math.round(total),
-        });
-      }
-      // Add current point
-      const cryptoNow = cryptoAssets.reduce((s, a) => s + a.totalValue, 0);
-      points.push({
-        date: new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-        value: Math.round(cryptoNow),
-      });
-      result.crypto = points;
-    }
-  }
-
-  // Gold: use pre-fetched history
-  const goldAssets = assets.filter((a) => a.category === 'gold');
-  if (goldAssets.length > 0 && goldHistory.length >= 2) {
-    const totalQty = goldAssets.reduce((s, a) => s + a.quantity, 0);
-    const points: PerformancePoint[] = goldHistory.map((h) => ({
-      date: new Date(h.timestamp).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-      value: Math.round(totalQty * h.price),
-    }));
-    const goldNow = goldAssets.reduce((s, a) => s + a.totalValue, 0);
-    points.push({
-      date: new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-      value: Math.round(goldNow),
-    });
-    result.gold = points;
-  }
-
-  // USD: use pre-fetched history
-  const usdAssets = assets.filter((a) => a.category === 'usd');
-  if (usdAssets.length > 0 && usdHistory.length >= 2) {
-    const totalQty = usdAssets.reduce((s, a) => s + a.quantity, 0);
-    const points: PerformancePoint[] = usdHistory.map((h) => ({
-      date: new Date(h.timestamp).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-      value: Math.round(totalQty * h.price),
-    }));
-    const usdNow = usdAssets.reduce((s, a) => s + a.totalValue, 0);
-    points.push({
-      date: new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-      value: Math.round(usdNow),
-    });
-    result.usd = points;
-  }
-
-  // Stock & Cash: no historical API available, skip
-
-  return result;
 }

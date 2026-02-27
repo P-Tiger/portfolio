@@ -4,7 +4,7 @@ import { useState, useEffect, useId } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatVND } from '@/lib/format';
 
-export interface PerformancePoint {
+interface PerformancePoint {
   date: string;
   value: number;
 }
@@ -37,31 +37,20 @@ function CustomTooltip({
 }
 
 interface Props {
-  data: PerformancePoint[];
   title?: string;
   category?: string;
 }
 
 export function PerformanceChart({
-  data: initialData,
   title = 'Portfolio Performance',
   category,
 }: Props) {
   const gradientId = useId().replace(/:/g, '_');
   const [activeTimeframe, setActiveTimeframe] = useState('4h');
-  const [data, setData] = useState(initialData);
-  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<PerformancePoint[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setData(initialData);
-  }, [initialData]);
-
-  useEffect(() => {
-    if (activeTimeframe === '4h') {
-      setData(initialData);
-      return;
-    }
-
     const cat = category || 'overview';
     setLoading(true);
     fetch(`/api/history?tf=${activeTimeframe}&cat=${cat}`)
@@ -74,7 +63,7 @@ export function PerformanceChart({
         setData([]);
         setLoading(false);
       });
-  }, [activeTimeframe, category, initialData]);
+  }, [activeTimeframe, category]);
 
   const hasData = data.length >= 2;
   const first = hasData ? data[0].value : 0;

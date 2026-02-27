@@ -43,8 +43,6 @@ export interface PortfolioData {
   totalPnl: number;
   totalPnlPercent: number;
   categoryBreakdown: CategoryBreakdown[];
-  performanceHistory: PerformancePoint[];
-  categoryPerformance: Partial<Record<Category, PerformancePoint[]>>;
   lastUpdated: string;
 }
 

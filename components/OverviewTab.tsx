@@ -12,7 +12,7 @@ export function OverviewTab({ data }: { data: PortfolioData }) {
   return (
     <div className="tab-content space-y-6">
       <PortfolioSummary data={data} />
-      <PerformanceChart data={data.performanceHistory} title="Portfolio Performance" category="overview" />
+      <PerformanceChart title="Portfolio Performance" category="overview" />
       <CategoryCards data={data.categoryBreakdown} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <AllocationChart data={data.categoryBreakdown} />

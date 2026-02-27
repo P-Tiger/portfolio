@@ -1,6 +1,6 @@
 'use client';
 
-import { Asset, Category, CATEGORY_LABELS, CATEGORY_COLORS, PerformancePoint } from '@/lib/types';
+import { Asset, Category, CATEGORY_LABELS, CATEGORY_COLORS } from '@/lib/types';
 import { formatVND } from '@/lib/format';
 import { AnimatedNumber } from './AnimatedNumber';
 import { PnlBarChart } from './PnlBarChart';
@@ -10,10 +10,9 @@ import { AssetTable } from './AssetTable';
 interface Props {
   category: Category;
   assets: Asset[];
-  performanceHistory?: PerformancePoint[];
 }
 
-export function CategoryTab({ category, assets, performanceHistory }: Props) {
+export function CategoryTab({ category, assets }: Props) {
   const label = CATEGORY_LABELS[category];
   const color = CATEGORY_COLORS[category];
   const totalValue = assets.reduce((s, a) => s + a.totalValue, 0);
@@ -82,7 +81,7 @@ export function CategoryTab({ category, assets, performanceHistory }: Props) {
       </div>
 
       {category !== 'cash' && (
-        <PerformanceChart data={performanceHistory ?? []} title={`${label} Performance`} category={category} />
+        <PerformanceChart title={`${label} Performance`} category={category} />
       )}
 
       {assets.length > 1 && <PnlBarChart assets={assets} />}
