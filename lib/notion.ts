@@ -95,8 +95,10 @@ function resolvePrice(raw: AssetRaw, prices: Record<string, { vnd: number; chang
       break;
     }
     case 'stock': {
-      const p = prices[raw.symbol.toUpperCase()];
+      const key = raw.symbol.toUpperCase();
+      const p = prices[key];
       if (p) { currentPrice = p.vnd; change24h = p.change24h; }
+      else { console.warn(`[resolve] Stock "${raw.name}" symbol="${key}" not found in prices. Available:`, Object.keys(prices).filter(k => !k.startsWith('__'))); }
       break;
     }
     case 'gold': {

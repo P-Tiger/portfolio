@@ -127,8 +127,8 @@ export async function fetchStockPrices(tickers: string[]): Promise<PriceMap> {
       for (const item of data) {
         const ticker = item.a?.toUpperCase();
         if (tickerSet.has(ticker) && !map[ticker]) {
-          const price = (item.b ?? item.l ?? 0) * 1000;
-          const ref = (item.l ?? 0) * 1000;
+          const price = (item.l || item.b || 0) * 1000;  // l = last matched (current) price, fallback to b (reference)
+          const ref = (item.b || 0) * 1000;               // b = reference price
           const change = ref > 0 ? ((price - ref) / ref) * 100 : 0;
           map[ticker] = { vnd: price, change24h: change };
         }
