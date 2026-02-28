@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useId } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatVND } from '@/lib/format';
+import { useEffect, useId, useState, useTransition } from 'react';
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface PerformancePoint {
   date: string;
@@ -41,14 +41,12 @@ interface Props {
   category?: string;
 }
 
-export function PerformanceChart({
-  title = 'Portfolio Performance',
-  category,
-}: Props) {
+export function PerformanceChart({ title = 'Portfolio Performance', category }: Props) {
   const gradientId = useId().replace(/:/g, '_');
   const [activeTimeframe, setActiveTimeframe] = useState('4h');
   const [data, setData] = useState<PerformancePoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [, startTfTransition] = useTransition();
 
   useEffect(() => {
     const cat = category || 'overview';
@@ -98,11 +96,9 @@ export function PerformanceChart({
           {TIMEFRAMES.map((tf) => (
             <button
               key={tf.key}
-              onClick={() => setActiveTimeframe(tf.key)}
+              onClick={() => startTfTransition(() => setActiveTimeframe(tf.key))}
               className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
-                activeTimeframe === tf.key
-                  ? 'bg-zinc-700 text-white shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-300'
+                activeTimeframe === tf.key ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
               }`}
             >
               {tf.label}
@@ -152,6 +148,7 @@ export function PerformanceChart({
                 strokeWidth={2}
                 fill={`url(#perfGrad_${gradientId})`}
                 dot={false}
+                isAnimationActive={false}
                 activeDot={{ r: 4, fill: strokeColor, stroke: '#18181b', strokeWidth: 2 }}
               />
             </AreaChart>

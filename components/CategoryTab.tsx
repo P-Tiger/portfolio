@@ -3,8 +3,13 @@
 import { Asset, Category, CATEGORY_LABELS, CATEGORY_COLORS, TransactionRaw } from '@/lib/types';
 import { formatVND } from '@/lib/format';
 import { AnimatedNumber } from './AnimatedNumber';
-import { PnlBarChart } from './PnlBarChart';
 import { AssetTable } from './AssetTable';
+import dynamic from 'next/dynamic';
+
+const PnlBarChart = dynamic(
+  () => import('./PnlBarChart').then((m) => ({ default: m.PnlBarChart })),
+  { ssr: false, loading: () => <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-[380px]" /> }
+);
 
 interface Props {
   category: Category;

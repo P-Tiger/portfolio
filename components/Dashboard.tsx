@@ -1,7 +1,7 @@
 'use client';
 
 import { Category, PortfolioData, TransactionRaw } from '@/lib/types';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { CategoryTab } from './CategoryTab';
 import { OverviewTab } from './OverviewTab';
 import { TabKey, TabNavigation } from './TabNavigation';
@@ -14,6 +14,7 @@ interface Props {
 
 export function Dashboard({ data, refreshIntervalSec, onRefreshIntervalChange }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [, startTabTransition] = useTransition();
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -46,7 +47,7 @@ export function Dashboard({ data, refreshIntervalSec, onRefreshIntervalChange }:
         </label>
       </div>
       <div className="mb-6 bg-zinc-900/50 border border-zinc-800 rounded-xl p-2">
-        <TabNavigation active={activeTab} onChange={setActiveTab} categoryCounts={categoryCounts} />
+        <TabNavigation active={activeTab} onChange={(tab) => startTabTransition(() => setActiveTab(tab))} categoryCounts={categoryCounts} />
       </div>
 
       {activeTab === 'overview' ? (

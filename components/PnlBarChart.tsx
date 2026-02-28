@@ -59,7 +59,7 @@ export function PnlBarChart({ assets }: { assets: Asset[] }) {
             <YAxis type="category" dataKey="name" width={100} tick={{ fill: '#a1a1aa', fontSize: 12 }} />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
             <ReferenceLine x={0} stroke="#3f3f46" />
-            <Bar dataKey="pnl" radius={[0, 4, 4, 0]} maxBarSize={24}>
+            <Bar dataKey="pnl" radius={[0, 4, 4, 0]} maxBarSize={24} isAnimationActive={false}>
               {data.map((entry, i) => (
                 <Cell key={i} fill={entry.pnl >= 0 ? '#34d399' : '#f87171'} fillOpacity={0.85} />
               ))}

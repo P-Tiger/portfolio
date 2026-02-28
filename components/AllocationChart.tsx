@@ -36,6 +36,7 @@ export function AllocationChart({ data }: { data: CategoryBreakdown[] }) {
                 nameKey="name"
                 stroke="none"
                 paddingAngle={2}
+                isAnimationActive={false}
               >
                 {data.map((entry, index) => (
                   <Cell key={index} fill={entry.color} />

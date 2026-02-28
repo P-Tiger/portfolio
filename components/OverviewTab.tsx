@@ -1,11 +1,19 @@
 'use client';
 
 import { PortfolioData, TransactionRaw } from '@/lib/types';
-import { AllocationChart } from './AllocationChart';
+import dynamic from 'next/dynamic';
 import { AssetTable } from './AssetTable';
 import { CategoryCards } from './CategoryCards';
-import { PnlBarChart } from './PnlBarChart';
 import { PortfolioSummary } from './PortfolioSummary';
+
+const AllocationChart = dynamic(
+  () => import('./AllocationChart').then((m) => ({ default: m.AllocationChart })),
+  { ssr: false, loading: () => <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-[380px]" /> }
+);
+const PnlBarChart = dynamic(
+  () => import('./PnlBarChart').then((m) => ({ default: m.PnlBarChart })),
+  { ssr: false, loading: () => <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-[380px]" /> }
+);
 
 export function OverviewTab({ data, transactions }: { data: PortfolioData; transactions: TransactionRaw[] }) {
   return (
