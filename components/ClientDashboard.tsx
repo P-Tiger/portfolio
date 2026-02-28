@@ -155,55 +155,78 @@ export function ClientDashboard({ data, rawAssets }: ClientDashboardProps) {
   useEffect(() => {
     // Load prices from localStorage after hydration
     const storedPrices = loadPricesFromStorage();
-    if (Object.keys(storedPrices).length > 0) {
+    if (Object.keys(storedPrices).length > 0 && rawAssets.length === 0) {
+      // Only apply stored prices on first load when we have empty rawAssets
       const dataWithStoredPrices = recalculatePortfolioData(rawAssets, storedPrices);
       setPortfolioData(dataWithStoredPrices);
     }
     setHydrated(true);
-  }, [rawAssets]);
+  }, []);
 
   useEffect(() => {
     // Only start fetching after hydration is complete
     if (!hydrated) return;
 
-    const fetchPortfolioData = async () => {
+    const fetchNotionData = async () => {
       try {
-        console.log('[dashboard] Fetching portfolio data (Notion + prices)...');
+        console.log('[dashboard] Fetching Notion data...');
         const response = await fetch('/api/portfolio-data');
         if (!response.ok) {
-          console.error('[dashboard] Failed to fetch portfolio data:', response.statusText);
+          console.error('[dashboard] Failed to fetch Notion data:', response.statusText);
           return;
         }
-        const newData: PortfolioData = await response.json();
-        console.log('[dashboard] Portfolio data received, updating dashboard');
+        const notionData: PortfolioData = await response.json();
+        console.log('[dashboard] Notion data received');
 
-        // Save prices to localStorage for next load
-        const priceMap: PriceMap = {};
-        for (const asset of newData.rawAssets || []) {
-          const assetData = newData.assets.find((a) => a.id === asset.id);
-          if (assetData) {
-            priceMap[asset.symbol.toLowerCase()] = {
-              vnd: assetData.currentPrice,
-              change24h: assetData.change24h,
-            };
-          }
+        // Update with Notion data + stored prices if available
+        const storedPrices = loadPricesFromStorage();
+        if (Object.keys(storedPrices).length > 0) {
+          const dataWithStoredPrices = recalculatePortfolioData(notionData.rawAssets || [], storedPrices);
+          setPortfolioData(dataWithStoredPrices);
+        } else {
+          setPortfolioData(notionData);
         }
-        if (Object.keys(priceMap).length > 0) {
-          savePricesToStorage(priceMap);
-        }
+      } catch (e) {
+        console.error('[dashboard] Error fetching Notion data:', (e as Error).message);
+      }
+    };
 
+    // Fetch Notion data immediately
+    fetchNotionData();
+  }, [hydrated]);
+
+  // Fetch prices separately every 5 seconds
+  useEffect(() => {
+    if (!hydrated) return;
+
+    const fetchPrices = async () => {
+      try {
+        console.log('[dashboard] Fetching prices...');
+        const response = await fetch('/api/refresh-prices');
+        if (!response.ok) {
+          console.error('[dashboard] Failed to fetch prices:', response.statusText);
+          return;
+        }
+        const prices: PriceMap = await response.json();
+        console.log('[dashboard] Prices received, updating dashboard');
+
+        // Save to localStorage
+        savePricesToStorage(prices);
+
+        // Update portfolio with new prices
+        const newData = recalculatePortfolioData(portfolioData.rawAssets || [], prices);
         setPortfolioData(newData);
       } catch (e) {
-        console.error('[dashboard] Error fetching portfolio data:', (e as Error).message);
-        // Silently fail - keep showing current data
+        console.error('[dashboard] Error refreshing prices:', (e as Error).message);
+        // Silently fail - keep showing old data
       }
     };
 
     // Fetch immediately
-    fetchPortfolioData();
+    fetchPrices();
 
     // Then refresh every 5 seconds
-    const interval = setInterval(fetchPortfolioData, 5000);
+    const interval = setInterval(fetchPrices, 5000);
 
     return () => clearInterval(interval);
   }, [hydrated]);
