@@ -512,20 +512,24 @@ export async function fetchAllPrices(
   return merged;
 }
 
-// ============ SERVER-SIDE PRICE CACHE (30s TTL) ============
+// ============ SERVER-SIDE PRICE CACHE (dynamic TTL, default 30s) ============
 let priceCache: { data: PriceMap; timestamp: number; key: string } | null = null;
-const PRICE_CACHE_TTL = 30 * 1000; // 30 seconds
+const DEFAULT_PRICE_CACHE_TTL = 30 * 1000; // 30 seconds
 
 export async function fetchAllPricesCached(
   cryptoIds: string[],
   stockTickers: string[],
   hasGold: boolean,
   hasUsd: boolean,
+  cacheTtlSec: number = 30,
 ): Promise<PriceMap> {
   const now = Date.now();
+  const ttlMs = Number.isFinite(cacheTtlSec)
+    ? Math.max(5_000, Math.min(120_000, Math.round(cacheTtlSec * 1000)))
+    : DEFAULT_PRICE_CACHE_TTL;
   const cacheKey = `${cryptoIds.sort().join(',')}_${stockTickers.sort().join(',')}_${hasGold}_${hasUsd}`;
 
-  if (priceCache && priceCache.key === cacheKey && now - priceCache.timestamp < PRICE_CACHE_TTL) {
+  if (priceCache && priceCache.key === cacheKey && now - priceCache.timestamp < ttlMs) {
     console.log('[prices] Serving cached prices (age:', Math.round((now - priceCache.timestamp) / 1000), 's)');
     return priceCache.data;
   }

@@ -1,7 +1,5 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Dashboard } from './Dashboard';
 import {
   AssetRaw,
   Category,
@@ -11,6 +9,8 @@ import {
   PortfolioData,
   PriceMap,
 } from '@/lib/types';
+import { useEffect, useRef, useState } from 'react';
+import { Dashboard } from './Dashboard';
 
 function resolvePrice(raw: AssetRaw, prices: PriceMap) {
   let currentPrice = 0;
@@ -19,22 +19,34 @@ function resolvePrice(raw: AssetRaw, prices: PriceMap) {
   switch (raw.category) {
     case 'crypto': {
       const p = prices[raw.symbol.toLowerCase()];
-      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
+      if (p) {
+        currentPrice = p.vnd;
+        change24h = p.change24h;
+      }
       break;
     }
     case 'stock': {
       const p = prices[raw.symbol.toUpperCase()];
-      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
+      if (p) {
+        currentPrice = p.vnd;
+        change24h = p.change24h;
+      }
       break;
     }
     case 'gold': {
       const p = prices['__gold__'];
-      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
+      if (p) {
+        currentPrice = p.vnd;
+        change24h = p.change24h;
+      }
       break;
     }
     case 'usd': {
       const p = prices['__usd__'];
-      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
+      if (p) {
+        currentPrice = p.vnd;
+        change24h = p.change24h;
+      }
       break;
     }
     case 'cash': {
@@ -76,7 +88,9 @@ function buildPortfolioData(rawAssets: AssetRaw[], prices: PriceMap): PortfolioD
       return {
         category: cat,
         name: CATEGORY_LABELS[cat] || cat,
-        value: d.value, cost: d.cost, pnl,
+        value: d.value,
+        cost: d.cost,
+        pnl,
         pnlPercent: d.cost > 0 ? (pnl / d.cost) * 100 : 0,
         percent: totalValue > 0 ? (d.value / totalValue) * 100 : 0,
         color: CATEGORY_COLORS[cat] || '#6b7280',
@@ -87,7 +101,11 @@ function buildPortfolioData(rawAssets: AssetRaw[], prices: PriceMap): PortfolioD
 
   return {
     assets: assets.sort((a, b) => b.totalValue - a.totalValue),
-    totalValue, totalCost, totalPnl, totalPnlPercent, categoryBreakdown,
+    totalValue,
+    totalCost,
+    totalPnl,
+    totalPnlPercent,
+    categoryBreakdown,
     lastUpdated: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
   };
 }
@@ -96,24 +114,53 @@ function loadPrices(): PriceMap {
   try {
     const s = localStorage.getItem('portfolio-prices');
     return s ? JSON.parse(s) : {};
-  } catch { return {}; }
+  } catch {
+    return {};
+  }
 }
 
 function savePrices(prices: PriceMap) {
-  try { localStorage.setItem('portfolio-prices', JSON.stringify(prices)); }
-  catch { /* ignore */ }
+  try {
+    localStorage.setItem('portfolio-prices', JSON.stringify(prices));
+  } catch {
+    /* ignore */
+  }
 }
 
 function loadRawAssets(): AssetRaw[] {
   try {
     const s = localStorage.getItem('portfolio-raw-assets');
     return s ? JSON.parse(s) : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 function saveRawAssets(assets: AssetRaw[]) {
-  try { localStorage.setItem('portfolio-raw-assets', JSON.stringify(assets)); }
-  catch { /* ignore */ }
+  try {
+    localStorage.setItem('portfolio-raw-assets', JSON.stringify(assets));
+  } catch {
+    /* ignore */
+  }
+}
+
+function loadRefreshIntervalSec(): number {
+  try {
+    const s = localStorage.getItem('portfolio-refresh-interval-sec');
+    const v = s ? Number(s) : 30;
+    if (v === 15 || v === 30 || v === 60) return v;
+  } catch {
+    // ignore
+  }
+  return 30;
+}
+
+function saveRefreshIntervalSec(seconds: number) {
+  try {
+    localStorage.setItem('portfolio-refresh-interval-sec', String(seconds));
+  } catch {
+    /* ignore */
+  }
 }
 
 const emptyData: PortfolioData = {
@@ -137,6 +184,7 @@ export function ClientDashboard() {
     return emptyData;
   });
   const rawAssetsRef = useRef<AssetRaw[]>(loadRawAssets());
+  const [refreshIntervalSec, setRefreshIntervalSec] = useState<number>(() => loadRefreshIntervalSec());
 
   useEffect(() => {
     const fetchNotion = async () => {
@@ -163,7 +211,7 @@ export function ClientDashboard() {
     const fetchPrices = async () => {
       if (rawAssetsRef.current.length === 0) return;
       try {
-        const res = await fetch('/api/refresh-prices');
+        const res = await fetch(`/api/refresh-prices?cacheTtl=${refreshIntervalSec}`);
         if (!res.ok) return;
         const prices: PriceMap = await res.json();
         savePrices(prices);
@@ -176,14 +224,25 @@ export function ClientDashboard() {
     // Initial load: Notion first, then prices
     fetchNotion().then(() => fetchPrices());
 
-    // Refresh Notion every 5 min, prices every 5s
+    // Refresh Notion every 5 min, prices by selected interval
     const notionInterval = setInterval(fetchNotion, 5 * 60 * 1000);
-    const pricesInterval = setInterval(fetchPrices, 5000);
+    const pricesInterval = setInterval(fetchPrices, refreshIntervalSec * 1000);
     return () => {
       clearInterval(notionInterval);
       clearInterval(pricesInterval);
     };
-  }, []);
+  }, [refreshIntervalSec]);
 
-  return <Dashboard data={portfolioData} />;
+  const handleRefreshIntervalChange = (seconds: number) => {
+    setRefreshIntervalSec(seconds);
+    saveRefreshIntervalSec(seconds);
+  };
+
+  return (
+    <Dashboard
+      data={portfolioData}
+      refreshIntervalSec={refreshIntervalSec}
+      onRefreshIntervalChange={handleRefreshIntervalChange}
+    />
+  );
 }

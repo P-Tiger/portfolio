@@ -1,9 +1,12 @@
 import { getCachedAssets } from '@/lib/notion';
 import { fetchAllPricesCached } from '@/lib/prices';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const ttlParam = Number(request.nextUrl.searchParams.get('cacheTtl') || '30');
+    const cacheTtlSec = Number.isFinite(ttlParam) ? Math.max(5, Math.min(120, Math.round(ttlParam))) : 30;
+
     const assets = await getCachedAssets();
 
     // Determine which price sources we need
@@ -15,7 +18,7 @@ export async function GET() {
     const stockTickers = assets.filter((a) => a.category === 'stock').map((a) => a.symbol.toUpperCase());
 
     // Fetch fresh prices
-    const prices = await fetchAllPricesCached(cryptoIds, stockTickers, hasGold, hasUsd);
+    const prices = await fetchAllPricesCached(cryptoIds, stockTickers, hasGold, hasUsd, cacheTtlSec);
 
     return NextResponse.json(prices);
   } catch (e) {
