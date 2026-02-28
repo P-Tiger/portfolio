@@ -1,33 +1,35 @@
 'use client';
 
-import { formatVND } from '@/lib/format';
+import { DisplayCurrency, formatMoney, getCurrencyLabel } from '@/lib/format';
 import { PortfolioData } from '@/lib/types';
 import { AnimatedNumber } from './AnimatedNumber';
 
 interface PortfolioSummaryProps {
   data: PortfolioData;
+  displayCurrency: DisplayCurrency;
+  usdToVndRate: number;
 }
 
-export function PortfolioSummary({ data }: PortfolioSummaryProps) {
+export function PortfolioSummary({ data, displayCurrency, usdToVndRate }: PortfolioSummaryProps) {
   const isPnlPositive = data.totalPnl >= 0;
 
   const cards = [
     {
       label: 'Tổng tài sản',
       value: data.totalValue,
-      suffix: 'VND',
+      suffix: getCurrencyLabel(displayCurrency),
       color: 'text-white',
     },
     {
       label: 'Vốn ròng',
       value: data.totalCost,
-      suffix: 'VND',
+      suffix: getCurrencyLabel(displayCurrency),
       color: 'text-white',
     },
     {
       label: 'Lời / Lỗ (P&L)',
       value: data.totalPnl,
-      suffix: 'VND',
+      suffix: getCurrencyLabel(displayCurrency),
       color: isPnlPositive ? 'text-emerald-400' : 'text-red-400',
       prefix: isPnlPositive ? '+' : '',
       sub: `${isPnlPositive ? '+' : ''}${data.totalPnlPercent.toFixed(2)}%`,
@@ -54,7 +56,7 @@ export function PortfolioSummary({ data }: PortfolioSummaryProps) {
             {card.isCount ? (
               <AnimatedNumber value={card.value} />
             ) : (
-              <AnimatedNumber value={card.value} formatter={formatVND} />
+              <AnimatedNumber value={card.value} formatter={(v) => formatMoney(v, displayCurrency, usdToVndRate)} />
             )}
             <span className="text-xs sm:text-sm text-zinc-500 ml-1 font-normal">{card.suffix}</span>
           </p>

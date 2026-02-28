@@ -1,7 +1,8 @@
 'use client';
 
-import { Category, PortfolioData, TransactionRaw } from '@/lib/types';
-import { useMemo, useState, useTransition } from 'react';
+import { DisplayCurrency } from '@/lib/format';
+import { Category, PortfolioData } from '@/lib/types';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { CategoryTab } from './CategoryTab';
 import { OverviewTab } from './OverviewTab';
 import { TabKey, TabNavigation } from './TabNavigation';
@@ -14,7 +15,20 @@ interface Props {
 
 export function Dashboard({ data, refreshIntervalSec, onRefreshIntervalChange }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [displayCurrency, setDisplayCurrency] = useState<DisplayCurrency>('VND');
   const [, startTabTransition] = useTransition();
+
+  useEffect(() => {
+    const saved = localStorage.getItem('portfolio-display-currency');
+    if (saved === 'VND' || saved === 'USD') {
+      setDisplayCurrency(saved);
+    }
+  }, []);
+
+  const handleCurrencyChange = (currency: DisplayCurrency) => {
+    setDisplayCurrency(currency);
+    localStorage.setItem('portfolio-display-currency', currency);
+  };
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -25,14 +39,32 @@ export function Dashboard({ data, refreshIntervalSec, onRefreshIntervalChange }:
   }, [data.categoryBreakdown]);
 
   const filteredAssets = useMemo(
-    () => activeTab === 'overview' ? data.assets : data.assets.filter((a) => a.category === activeTab),
-    [activeTab, data.assets]
+    () => (activeTab === 'overview' ? data.assets : data.assets.filter((a) => a.category === activeTab)),
+    [activeTab, data.assets],
   );
   const transactions = data.transactions || [];
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-end">
+      <div className="mb-6 flex items-center justify-end gap-3">
+        <div className="bg-zinc-900 border border-zinc-700 rounded-md p-0.5 flex items-center">
+          <button
+            onClick={() => handleCurrencyChange('VND')}
+            className={`px-2.5 py-1 text-xs rounded ${
+              displayCurrency === 'VND' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            VND
+          </button>
+          <button
+            onClick={() => handleCurrencyChange('USD')}
+            className={`px-2.5 py-1 text-xs rounded ${
+              displayCurrency === 'USD' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            USD
+          </button>
+        </div>
         <label className="flex items-center gap-2 text-xs text-zinc-400">
           Chu kỳ làm mới
           <select
@@ -47,13 +79,29 @@ export function Dashboard({ data, refreshIntervalSec, onRefreshIntervalChange }:
         </label>
       </div>
       <div className="mb-6 bg-zinc-900/50 border border-zinc-800 rounded-xl p-2">
-        <TabNavigation active={activeTab} onChange={(tab) => startTabTransition(() => setActiveTab(tab))} categoryCounts={categoryCounts} />
+        <TabNavigation
+          active={activeTab}
+          onChange={(tab) => startTabTransition(() => setActiveTab(tab))}
+          categoryCounts={categoryCounts}
+        />
       </div>
 
       {activeTab === 'overview' ? (
-        <OverviewTab data={data} transactions={transactions} />
+        <OverviewTab
+          data={data}
+          transactions={transactions}
+          displayCurrency={displayCurrency}
+          usdToVndRate={data.usdToVndRate}
+        />
       ) : (
-        <CategoryTab key={activeTab} category={activeTab as Category} assets={filteredAssets} transactions={transactions} />
+        <CategoryTab
+          key={activeTab}
+          category={activeTab as Category}
+          assets={filteredAssets}
+          transactions={transactions}
+          displayCurrency={displayCurrency}
+          usdToVndRate={data.usdToVndRate}
+        />
       )}
     </>
   );

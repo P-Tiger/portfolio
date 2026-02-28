@@ -10,7 +10,7 @@ import {
   PriceMap,
   TransactionRaw,
 } from '@/lib/types';
-import { useEffect, useRef, useState, startTransition } from 'react';
+import { startTransition, useEffect, useRef, useState } from 'react';
 import { Dashboard } from './Dashboard';
 
 function resolvePrice(raw: AssetRaw, prices: PriceMap) {
@@ -125,6 +125,7 @@ function buildPortfolioData(rawAssets: AssetRaw[], prices: PriceMap): PortfolioD
     totalPnlPercent,
     categoryBreakdown,
     lastUpdated: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+    usdToVndRate: prices.__usd__?.vnd ?? 0,
   };
 }
 
@@ -200,6 +201,7 @@ const emptyData: PortfolioData = {
   totalPnlPercent: 0,
   categoryBreakdown: [],
   lastUpdated: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+  usdToVndRate: 0,
 };
 
 export function ClientDashboard() {
@@ -221,7 +223,8 @@ export function ClientDashboard() {
       try {
         const res = await fetch('/api/portfolio-data');
         if (!res.ok) return;
-        const notionData: PortfolioData & { rawAssets?: AssetRaw[]; transactions?: TransactionRaw[] } = await res.json();
+        const notionData: PortfolioData & { rawAssets?: AssetRaw[]; transactions?: TransactionRaw[] } =
+          await res.json();
         const raw = notionData.rawAssets || [];
         rawAssetsRef.current = raw;
         transactionsRef.current = notionData.transactions || [];

@@ -1,22 +1,42 @@
 'use client';
 
-import { formatVND } from '@/lib/format';
+import { DisplayCurrency, formatMoney, getCurrencyLabel } from '@/lib/format';
 import { CategoryBreakdown } from '@/lib/types';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
-function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: CategoryBreakdown }> }) {
+function CustomTooltip({
+  active,
+  payload,
+  displayCurrency,
+  usdToVndRate,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: CategoryBreakdown }>;
+  displayCurrency: DisplayCurrency;
+  usdToVndRate: number;
+}) {
   if (!active || !payload?.length) return null;
   const data = payload[0].payload;
   return (
     <div className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm">
       <p className="font-medium text-white">{data.name}</p>
-      <p className="text-zinc-300">{formatVND(data.value)} VND</p>
+      <p className="text-zinc-300">
+        {formatMoney(data.value, displayCurrency, usdToVndRate)} {getCurrencyLabel(displayCurrency)}
+      </p>
       <p className="text-zinc-400">{data.percent.toFixed(1)}%</p>
     </div>
   );
 }
 
-export function AllocationChart({ data }: { data: CategoryBreakdown[] }) {
+export function AllocationChart({
+  data,
+  displayCurrency,
+  usdToVndRate,
+}: {
+  data: CategoryBreakdown[];
+  displayCurrency: DisplayCurrency;
+  usdToVndRate: number;
+}) {
   const total = data.reduce((s, d) => s + d.value, 0);
 
   return (
@@ -42,13 +62,13 @@ export function AllocationChart({ data }: { data: CategoryBreakdown[] }) {
                   <Cell key={index} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />} />
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="text-center">
               <p className="text-xs text-zinc-500">Tổng</p>
-              <p className="text-sm font-bold text-white">{formatVND(total)}</p>
+              <p className="text-sm font-bold text-white">{formatMoney(total, displayCurrency, usdToVndRate)}</p>
             </div>
           </div>
         </div>
@@ -72,7 +92,9 @@ export function AllocationChart({ data }: { data: CategoryBreakdown[] }) {
                   />
                 </div>
                 <div className="flex justify-between mt-1">
-                  <span className="text-xs text-zinc-500">{formatVND(item.value)} VND</span>
+                  <span className="text-xs text-zinc-500">
+                    {formatMoney(item.value, displayCurrency, usdToVndRate)} {getCurrencyLabel(displayCurrency)}
+                  </span>
                   <span className={`text-xs ${item.pnl >= 0 ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
                     {item.pnl >= 0 ? '+' : ''}
                     {item.pnlPercent.toFixed(1)}%

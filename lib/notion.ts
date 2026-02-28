@@ -1,16 +1,16 @@
 import { Client } from '@notionhq/client';
+import { fetchAllPrices } from './prices';
 import {
   Asset,
   AssetRaw,
   Category,
-  CategoryBreakdown,
   CATEGORY_COLORS,
   CATEGORY_LABELS,
+  CategoryBreakdown,
   PortfolioData,
   TransactionRaw,
   TransactionType,
 } from './types';
-import { fetchAllPrices } from './prices';
 
 const notion = new Client({
   auth: process.env.NOTION_TOKEN,
@@ -58,7 +58,7 @@ function getDate(prop: unknown): string {
 
 async function fetchTransactionsFromNotion(): Promise<TransactionRaw[]> {
   const now = Date.now();
-  if (notionCache && (now - notionCache.timestamp) < NOTION_CACHE_TTL) {
+  if (notionCache && now - notionCache.timestamp < NOTION_CACHE_TTL) {
     console.log('[notion] Using cached data (age:', Math.round((now - notionCache.timestamp) / 1000), 's)');
     return notionCache.data;
   }
@@ -81,20 +81,22 @@ async function fetchTransactionsFromNotion(): Promise<TransactionRaw[]> {
     startCursor = response.next_cursor ?? undefined;
   }
 
-  const data: TransactionRaw[] = allResults.map((p) => {
-    const qty = getNumber(getProperty(p, 'Quantity'));
-    return {
-      id: p.id as string,
-      name: getTitle(getProperty(p, 'Name')),
-      date: getDate(getProperty(p, 'Date')),
-      type: (getSelect(getProperty(p, 'Type')) || 'Buy') as TransactionType,
-      symbol: getRichText(getProperty(p, 'Symbol')).trim(),
-      category: getSelect(getProperty(p, 'Category')).toLowerCase() as Category,
-      price: getNumber(getProperty(p, 'Price')),
-      quantity: qty,
-      note: getRichText(getProperty(p, 'Note')),
-    };
-  }).filter((tx) => tx.quantity > 0);
+  const data: TransactionRaw[] = allResults
+    .map((p) => {
+      const qty = getNumber(getProperty(p, 'Quantity'));
+      return {
+        id: p.id as string,
+        name: getTitle(getProperty(p, 'Name')),
+        date: getDate(getProperty(p, 'Date')),
+        type: (getSelect(getProperty(p, 'Type')) || 'Buy') as TransactionType,
+        symbol: getRichText(getProperty(p, 'Symbol')).trim(),
+        category: getSelect(getProperty(p, 'Category')).toLowerCase() as Category,
+        price: getNumber(getProperty(p, 'Price')),
+        quantity: qty,
+        note: getRichText(getProperty(p, 'Note')),
+      };
+    })
+    .filter((tx) => tx.quantity > 0);
 
   notionCache = { data, timestamp: now };
   console.log('[notion] Cached', data.length, 'transactions');
@@ -174,24 +176,37 @@ function resolvePrice(raw: AssetRaw, prices: Record<string, { vnd: number; chang
   switch (raw.category) {
     case 'crypto': {
       const p = prices[raw.symbol.toLowerCase()];
-      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
+      if (p) {
+        currentPrice = p.vnd;
+        change24h = p.change24h;
+      }
       break;
     }
     case 'stock': {
       const key = raw.symbol.toUpperCase();
       const p = prices[key];
-      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
-      else { console.warn(`[resolve] Stock "${raw.name}" symbol="${key}" not found in prices.`); }
+      if (p) {
+        currentPrice = p.vnd;
+        change24h = p.change24h;
+      } else {
+        console.warn(`[resolve] Stock "${raw.name}" symbol="${key}" not found in prices.`);
+      }
       break;
     }
     case 'gold': {
       const p = prices['__gold__'];
-      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
+      if (p) {
+        currentPrice = p.vnd;
+        change24h = p.change24h;
+      }
       break;
     }
     case 'usd': {
       const p = prices['__usd__'];
-      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
+      if (p) {
+        currentPrice = p.vnd;
+        change24h = p.change24h;
+      }
       break;
     }
     case 'cash': {
@@ -263,6 +278,7 @@ function buildPortfolioData(assets: Asset[]): PortfolioData {
     totalPnlPercent,
     categoryBreakdown,
     lastUpdated: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+    usdToVndRate: 0,
   };
 }
 
@@ -277,12 +293,13 @@ export async function getPortfolioDataWithoutPrices(): Promise<PortfolioData> {
       change24h: 0,
       totalValue: 0,
       totalCost: raw.quantity > 0 ? netCost : raw.totalCostGross,
-      pnl: raw.quantity <= 0
-        ? raw.totalProceeds - raw.totalCostGross
-        : -netCost,
-      pnlPercent: raw.quantity <= 0
-        ? (raw.totalCostGross > 0 ? ((raw.totalProceeds - raw.totalCostGross) / raw.totalCostGross) * 100 : 0)
-        : -100,
+      pnl: raw.quantity <= 0 ? raw.totalProceeds - raw.totalCostGross : -netCost,
+      pnlPercent:
+        raw.quantity <= 0
+          ? raw.totalCostGross > 0
+            ? ((raw.totalProceeds - raw.totalCostGross) / raw.totalCostGross) * 100
+            : 0
+          : -100,
     };
   });
 
@@ -302,5 +319,5 @@ export async function getPortfolioData(): Promise<PortfolioData> {
   const assets: Asset[] = rawAssets.map((raw) => resolvePrice(raw, prices));
 
   const portfolioData = buildPortfolioData(assets);
-  return { ...portfolioData, rawAssets, transactions };
+  return { ...portfolioData, usdToVndRate: prices.__usd__?.vnd ?? 0, rawAssets, transactions };
 }

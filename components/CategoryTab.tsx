@@ -1,23 +1,25 @@
 'use client';
 
-import { Asset, Category, CATEGORY_LABELS, CATEGORY_COLORS, TransactionRaw } from '@/lib/types';
-import { formatVND } from '@/lib/format';
+import { DisplayCurrency, formatMoney, getCurrencyLabel } from '@/lib/format';
+import { Asset, Category, CATEGORY_COLORS, CATEGORY_LABELS, TransactionRaw } from '@/lib/types';
+import dynamic from 'next/dynamic';
 import { AnimatedNumber } from './AnimatedNumber';
 import { AssetTable } from './AssetTable';
-import dynamic from 'next/dynamic';
 
-const PnlBarChart = dynamic(
-  () => import('./PnlBarChart').then((m) => ({ default: m.PnlBarChart })),
-  { ssr: false, loading: () => <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-[380px]" /> }
-);
+const PnlBarChart = dynamic(() => import('./PnlBarChart').then((m) => ({ default: m.PnlBarChart })), {
+  ssr: false,
+  loading: () => <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-[380px]" />,
+});
 
 interface Props {
   category: Category;
   assets: Asset[];
   transactions: TransactionRaw[];
+  displayCurrency: DisplayCurrency;
+  usdToVndRate: number;
 }
 
-export function CategoryTab({ category, assets, transactions }: Props) {
+export function CategoryTab({ category, assets, transactions, displayCurrency, usdToVndRate }: Props) {
   const label = CATEGORY_LABELS[category];
   const color = CATEGORY_COLORS[category];
   const totalValue = assets.reduce((s, a) => s + a.totalValue, 0);
@@ -57,23 +59,23 @@ export function CategoryTab({ category, assets, transactions }: Props) {
         <div className="animate-fade-in delay-1 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <p className="text-zinc-400 text-xs mb-2">Tổng giá trị {label}</p>
           <p className="text-xl font-bold text-white">
-            <AnimatedNumber value={totalValue} formatter={formatVND} />
-            <span className="text-xs text-zinc-500 ml-1 font-normal">VND</span>
+            <AnimatedNumber value={totalValue} formatter={(v) => formatMoney(v, displayCurrency, usdToVndRate)} />
+            <span className="text-xs text-zinc-500 ml-1 font-normal">{getCurrencyLabel(displayCurrency)}</span>
           </p>
         </div>
         <div className="animate-fade-in delay-2 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <p className="text-zinc-400 text-xs mb-2">Vốn ròng</p>
           <p className="text-xl font-bold text-white">
-            <AnimatedNumber value={totalCost} formatter={formatVND} />
-            <span className="text-xs text-zinc-500 ml-1 font-normal">VND</span>
+            <AnimatedNumber value={totalCost} formatter={(v) => formatMoney(v, displayCurrency, usdToVndRate)} />
+            <span className="text-xs text-zinc-500 ml-1 font-normal">{getCurrencyLabel(displayCurrency)}</span>
           </p>
         </div>
         <div className="animate-fade-in delay-3 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <p className="text-zinc-400 text-xs mb-2">P&L</p>
           <p className={`text-xl font-bold ${isPnlPositive ? 'text-emerald-400' : 'text-red-400'}`}>
             {isPnlPositive ? '+' : ''}
-            <AnimatedNumber value={totalPnl} formatter={formatVND} />
-            <span className="text-xs ml-1 font-normal">VND</span>
+            <AnimatedNumber value={totalPnl} formatter={(v) => formatMoney(v, displayCurrency, usdToVndRate)} />
+            <span className="text-xs ml-1 font-normal">{getCurrencyLabel(displayCurrency)}</span>
           </p>
         </div>
         <div className="animate-fade-in delay-4 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
@@ -85,8 +87,16 @@ export function CategoryTab({ category, assets, transactions }: Props) {
         </div>
       </div>
 
-      {assets.length > 1 && <PnlBarChart assets={assets} />}
-      <AssetTable assets={assets} showCategory={false} transactions={transactions} />
+      {assets.length > 1 && (
+        <PnlBarChart assets={assets} displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />
+      )}
+      <AssetTable
+        assets={assets}
+        showCategory={false}
+        transactions={transactions}
+        displayCurrency={displayCurrency}
+        usdToVndRate={usdToVndRate}
+      />
     </div>
   );
 }

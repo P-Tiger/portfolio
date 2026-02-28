@@ -1,6 +1,6 @@
 'use client';
 
-import { formatPercent, formatQuantity, formatVNDFull } from '@/lib/format';
+import { DisplayCurrency, formatMoney, formatPercent, formatQuantity } from '@/lib/format';
 import { getAssetIcon } from '@/lib/icons';
 import { Asset, TransactionRaw } from '@/lib/types';
 import { useEffect, useState } from 'react';
@@ -12,10 +12,12 @@ const PAGE_SIZE = 10;
 interface Props {
   asset: Asset;
   transactions: TransactionRaw[];
+  displayCurrency: DisplayCurrency;
+  usdToVndRate: number;
   onClose: () => void;
 }
 
-export function TransactionDetailModal({ asset, transactions, onClose }: Props) {
+export function TransactionDetailModal({ asset, transactions, displayCurrency, usdToVndRate, onClose }: Props) {
   const [page, setPage] = useState(0);
 
   // Filter transactions for this asset
@@ -88,13 +90,13 @@ export function TransactionDetailModal({ asset, transactions, onClose }: Props) 
           <div className="flex items-center justify-between">
             <div>
               <p className="text-zinc-500 text-xs">Giá trị hiện tại</p>
-              <p className="text-white font-bold text-lg">{formatVNDFull(currentValue)}</p>
+              <p className="text-white font-bold text-lg">{formatMoney(currentValue, displayCurrency, usdToVndRate)}</p>
             </div>
             <div className="text-right">
               <p className="text-zinc-500 text-xs">P&L</p>
               <p className={`font-bold text-lg ${isPnlPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                 {isPnlPositive ? '+' : ''}
-                {formatVNDFull(asset.pnl)}
+                {formatMoney(asset.pnl, displayCurrency, usdToVndRate)}
               </p>
               <p className={`text-xs ${isPnlPositive ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
                 {isPnlPositive ? '+' : ''}
@@ -113,25 +115,29 @@ export function TransactionDetailModal({ asset, transactions, onClose }: Props) 
             </div>
             <div>
               <p className="text-zinc-500 text-xs mb-0.5">Giá TT</p>
-              <p className="text-white font-medium">{formatVNDFull(asset.currentPrice)}</p>
+              <p className="text-white font-medium">{formatMoney(asset.currentPrice, displayCurrency, usdToVndRate)}</p>
             </div>
             <div>
               <p className="text-zinc-500 text-xs mb-0.5">Giá TB ròng</p>
               <p className={`font-medium ${asset.buyPrice < 0 ? 'text-emerald-400' : 'text-white'}`}>
-                {formatVNDFull(asset.buyPrice)}
+                {formatMoney(asset.buyPrice, displayCurrency, usdToVndRate)}
               </p>
             </div>
             <div>
               <p className="text-zinc-500 text-xs mb-0.5">Tổng vốn mua</p>
-              <p className="text-white font-medium">{formatVNDFull(asset.totalCostGross)}</p>
+              <p className="text-white font-medium">
+                {formatMoney(asset.totalCostGross, displayCurrency, usdToVndRate)}
+              </p>
             </div>
             <div>
               <p className="text-zinc-500 text-xs mb-0.5">Tổng thu bán</p>
-              <p className="text-white font-medium">{formatVNDFull(asset.totalProceeds)}</p>
+              <p className="text-white font-medium">
+                {formatMoney(asset.totalProceeds, displayCurrency, usdToVndRate)}
+              </p>
             </div>
             <div>
               <p className="text-zinc-500 text-xs mb-0.5">Vốn ròng</p>
-              <p className="text-white font-medium">{formatVNDFull(netCost)}</p>
+              <p className="text-white font-medium">{formatMoney(netCost, displayCurrency, usdToVndRate)}</p>
             </div>
           </div>
         </div>
@@ -174,12 +180,12 @@ export function TransactionDetailModal({ asset, transactions, onClose }: Props) 
                       </div>
                       <span className={`text-sm font-medium ${isBuy ? 'text-zinc-300' : 'text-emerald-400'}`}>
                         {isBuy ? '-' : '+'}
-                        {formatVNDFull(total)}
+                        {formatMoney(total, displayCurrency, usdToVndRate)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-xs text-zinc-400">
                       <span>
-                        {formatQuantity(tx.quantity)} x {formatVNDFull(tx.price)}
+                        {formatQuantity(tx.quantity)} x {formatMoney(tx.price, displayCurrency, usdToVndRate)}
                       </span>
                       {tx.note && <span className="text-zinc-500 truncate ml-2 max-w-[150px]">{tx.note}</span>}
                     </div>
@@ -188,7 +194,7 @@ export function TransactionDetailModal({ asset, transactions, onClose }: Props) 
                         <span className="text-zinc-600">{isBuy ? 'vs giá TT' : 'vs giá TB mua'}</span>
                         <span className={isTxPnlPositive ? 'text-emerald-400' : 'text-red-400'}>
                           {isTxPnlPositive ? '+' : ''}
-                          {formatVNDFull(txPnl)}
+                          {formatMoney(txPnl, displayCurrency, usdToVndRate)}
                           <span className={`ml-1 ${isTxPnlPositive ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
                             ({formatPercent(txPnlPercent)})
                           </span>

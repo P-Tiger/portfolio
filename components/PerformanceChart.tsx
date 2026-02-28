@@ -1,6 +1,6 @@
 'use client';
 
-import { formatVND } from '@/lib/format';
+import { DisplayCurrency, formatMoney, getCurrencyLabel } from '@/lib/format';
 import { useEffect, useId, useState, useTransition } from 'react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
@@ -22,16 +22,22 @@ function CustomTooltip({
   active,
   payload,
   label,
+  displayCurrency,
+  usdToVndRate,
 }: {
   active?: boolean;
   payload?: Array<{ value: number }>;
   label?: string;
+  displayCurrency: DisplayCurrency;
+  usdToVndRate: number;
 }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm">
       <p className="text-zinc-400 text-xs">{label}</p>
-      <p className="font-medium text-white">{formatVND(payload[0].value)} VND</p>
+      <p className="font-medium text-white">
+        {formatMoney(payload[0].value, displayCurrency, usdToVndRate)} {getCurrencyLabel(displayCurrency)}
+      </p>
     </div>
   );
 }
@@ -39,9 +45,16 @@ function CustomTooltip({
 interface Props {
   title?: string;
   category?: string;
+  displayCurrency?: DisplayCurrency;
+  usdToVndRate?: number;
 }
 
-export function PerformanceChart({ title = 'Portfolio Performance', category }: Props) {
+export function PerformanceChart({
+  title = 'Portfolio Performance',
+  category,
+  displayCurrency = 'VND',
+  usdToVndRate = 0,
+}: Props) {
   const gradientId = useId().replace(/:/g, '_');
   const [activeTimeframe, setActiveTimeframe] = useState('4h');
   const [data, setData] = useState<PerformancePoint[]>([]);
@@ -82,7 +95,7 @@ export function PerformanceChart({ title = 'Portfolio Performance', category }: 
             <div className="text-right sm:text-left">
               <span className={`text-sm font-bold ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                 {isPositive ? '+' : ''}
-                {formatVND(change)} VND
+                {formatMoney(change, displayCurrency, usdToVndRate)} {getCurrencyLabel(displayCurrency)}
               </span>
               <span className={`ml-2 text-xs ${isPositive ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
                 ({isPositive ? '+' : ''}
@@ -140,7 +153,10 @@ export function PerformanceChart({ title = 'Portfolio Performance', category }: 
                 interval="preserveStartEnd"
               />
               <YAxis hide domain={['dataMin', 'dataMax']} />
-              <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#3f3f46' }} />
+              <Tooltip
+                content={<CustomTooltip displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />}
+                cursor={{ stroke: '#3f3f46' }}
+              />
               <Area
                 type="monotone"
                 dataKey="value"

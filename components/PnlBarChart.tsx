@@ -1,15 +1,19 @@
 'use client';
 
-import { formatVND } from '@/lib/format';
+import { DisplayCurrency, formatMoney, getCurrencyLabel } from '@/lib/format';
 import { Asset } from '@/lib/types';
 import { Bar, BarChart, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 function CustomTooltip({
   active,
   payload,
+  displayCurrency,
+  usdToVndRate,
 }: {
   active?: boolean;
   payload?: Array<{ payload: { name: string; pnl: number; pnlPercent: number } }>;
+  displayCurrency: DisplayCurrency;
+  usdToVndRate: number;
 }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
@@ -19,7 +23,7 @@ function CustomTooltip({
       <p className="font-medium text-white">{d.name}</p>
       <p className={isPositive ? 'text-emerald-400' : 'text-red-400'}>
         {isPositive ? '+' : ''}
-        {formatVND(d.pnl)} VND
+        {formatMoney(d.pnl, displayCurrency, usdToVndRate)} {getCurrencyLabel(displayCurrency)}
       </p>
       <p className="text-zinc-400">
         {isPositive ? '+' : ''}
@@ -29,7 +33,15 @@ function CustomTooltip({
   );
 }
 
-export function PnlBarChart({ assets }: { assets: Asset[] }) {
+export function PnlBarChart({
+  assets,
+  displayCurrency,
+  usdToVndRate,
+}: {
+  assets: Asset[];
+  displayCurrency: DisplayCurrency;
+  usdToVndRate: number;
+}) {
   const data = assets
     .filter((a) => a.transactionCount > 0)
     .sort((a, b) => b.pnl - a.pnl)
@@ -57,7 +69,10 @@ export function PnlBarChart({ assets }: { assets: Asset[] }) {
           <BarChart data={data} layout="vertical" margin={{ left: 10, right: 20 }}>
             <XAxis type="number" hide />
             <YAxis type="category" dataKey="name" width={100} tick={{ fill: '#a1a1aa', fontSize: 12 }} />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+            <Tooltip
+              content={<CustomTooltip displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />}
+              cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+            />
             <ReferenceLine x={0} stroke="#3f3f46" />
             <Bar dataKey="pnl" radius={[0, 4, 4, 0]} maxBarSize={24} isAnimationActive={false}>
               {data.map((entry, i) => (

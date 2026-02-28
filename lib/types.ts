@@ -18,8 +18,8 @@ export interface AssetRaw {
   id: string;
   name: string;
   category: Category;
-  quantity: number;       // holdings = totalBuyQty - totalSellQty
-  buyPrice: number;       // avgNetCost = (totalCostGross - totalProceeds) / holdings
+  quantity: number; // holdings = totalBuyQty - totalSellQty
+  buyPrice: number; // avgNetCost = (totalCostGross - totalProceeds) / holdings
   symbol: string;
   note: string;
   totalBuyQty: number;
@@ -64,6 +64,7 @@ export interface PortfolioData {
   totalPnlPercent: number;
   categoryBreakdown: CategoryBreakdown[];
   lastUpdated: string;
+  usdToVndRate: number;
   rawAssets?: AssetRaw[]; // For client-side price recalculation
   transactions?: TransactionRaw[]; // For transaction detail popup
 }

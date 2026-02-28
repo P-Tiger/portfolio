@@ -1,10 +1,18 @@
 'use client';
 
-import { formatVND } from '@/lib/format';
+import { DisplayCurrency, formatMoney } from '@/lib/format';
 import { CATEGORY_COLORS, CategoryBreakdown } from '@/lib/types';
 import { AnimatedNumber } from './AnimatedNumber';
 
-export function CategoryCards({ data }: { data: CategoryBreakdown[] }) {
+export function CategoryCards({
+  data,
+  displayCurrency,
+  usdToVndRate,
+}: {
+  data: CategoryBreakdown[];
+  displayCurrency: DisplayCurrency;
+  usdToVndRate: number;
+}) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
       {data.map((item, i) => {
@@ -21,17 +29,17 @@ export function CategoryCards({ data }: { data: CategoryBreakdown[] }) {
             </div>
 
             <p className="text-lg font-bold text-white mb-1">
-              <AnimatedNumber value={item.value} formatter={formatVND} />
+              <AnimatedNumber value={item.value} formatter={(v) => formatMoney(v, displayCurrency, usdToVndRate)} />
             </p>
 
             <p className="text-xs text-zinc-500 mb-2">
-              Vốn: <span className="text-zinc-400">{formatVND(item.cost)}</span>
+              Vốn: <span className="text-zinc-400">{formatMoney(item.cost, displayCurrency, usdToVndRate)}</span>
             </p>
 
             <div className="flex items-center justify-between mb-2">
               <span className={`text-xs font-medium ${isPnlPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                 P&L: {isPnlPositive ? '+' : ''}
-                {formatVND(item.pnl)}
+                {formatMoney(item.pnl, displayCurrency, usdToVndRate)}
               </span>
               <span className={`text-xs ${isPnlPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                 {isPnlPositive ? '+' : ''}
