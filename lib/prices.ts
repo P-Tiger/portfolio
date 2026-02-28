@@ -42,6 +42,10 @@ const CRYPTO_ID_TO_TICKER: Record<string, string> = {
 let usdRateCache: { rate: number; timestamp: number } | null = null;
 const USD_RATE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+type OkxSpotTicker = { instId: string; last: string; open24h: string };
+let okxSpotTickersCache: { data: OkxSpotTicker[]; timestamp: number } | null = null;
+const OKX_SPOT_TICKERS_CACHE_TTL = 30 * 1000; // 30 seconds
+
 async function getCachedUsdRate(): Promise<number> {
   const now = Date.now();
   if (usdRateCache && now - usdRateCache.timestamp < USD_RATE_CACHE_TTL) {
@@ -55,6 +59,39 @@ async function getCachedUsdRate(): Promise<number> {
     usdRateCache = { rate, timestamp: now };
   }
   return rate;
+}
+
+async function getCachedOkxSpotTickers(): Promise<OkxSpotTicker[] | null> {
+  const now = Date.now();
+  if (okxSpotTickersCache && now - okxSpotTickersCache.timestamp < OKX_SPOT_TICKERS_CACHE_TTL) {
+    console.log('[prices] Using cached OKX SPOT tickers');
+    return okxSpotTickersCache.data;
+  }
+
+  const url = 'https://www.okx.com/api/v5/market/tickers?instType=SPOT';
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json' },
+    cache: 'no-store',
+  });
+
+  if (!res.ok) {
+    console.warn(`[prices] OKX tickers HTTP ${res.status}`);
+    return null;
+  }
+
+  const body: {
+    code?: string;
+    msg?: string;
+    data?: OkxSpotTicker[];
+  } = await res.json();
+
+  if (body.code !== '0' || !body.data?.length) {
+    console.warn(`[prices] OKX tickers response invalid: ${body.msg ?? body.code ?? 'unknown'}`);
+    return null;
+  }
+
+  okxSpotTickersCache = { data: body.data, timestamp: now };
+  return body.data;
 }
 
 // ============ CRYPTO ============
@@ -96,32 +133,15 @@ async function fetchCryptoOkx(ids: string[]): Promise<PriceMap> {
     const instIds = Object.keys(instIdToId);
     if (instIds.length === 0) return {};
 
-    const url = 'https://www.okx.com/api/v5/market/tickers?instType=SPOT';
-    const res = await fetch(url, {
-      headers: { Accept: 'application/json' },
-      cache: 'no-store',
-    });
-
-    if (!res.ok) {
-      console.warn(`[prices] OKX tickers HTTP ${res.status}`);
-      return {};
-    }
-
-    const data: {
-      code?: string;
-      msg?: string;
-      data?: Array<{ instId: string; last: string; open24h: string }>;
-    } = await res.json();
-
-    if (data.code !== '0' || !data.data?.length) {
-      console.warn(`[prices] OKX tickers response invalid: ${data.msg ?? data.code ?? 'unknown'}`);
+    const tickers = await getCachedOkxSpotTickers();
+    if (!tickers?.length) {
       return {};
     }
 
     const requestedInstIds = new Set(instIds);
     const map: PriceMap = {};
 
-    for (const item of data.data) {
+    for (const item of tickers) {
       if (!item.instId.endsWith('-USDT')) continue;
       if (!requestedInstIds.has(item.instId)) continue;
 
