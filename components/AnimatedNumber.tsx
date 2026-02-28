@@ -40,5 +40,5 @@ export function AnimatedNumber({ value, duration = 1200, formatter, className }:
 
   const text = formatter ? formatter(display) : Math.round(display).toLocaleString('vi-VN');
 
-  return <span className={className}>{text}</span>;
+  return <span className={`tabular-nums ${className ?? ''}`}>{text}</span>;
 }

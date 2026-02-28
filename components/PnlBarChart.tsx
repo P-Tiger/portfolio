@@ -40,7 +40,14 @@ export function PnlBarChart({ assets }: { assets: Asset[] }) {
       pnlPercent: a.pnlPercent,
     }));
 
-  if (data.length === 0) return null;
+  if (data.length === 0) {
+    return (
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+        <h2 className="text-lg font-semibold text-white mb-4">Lời / Lỗ theo tài sản</h2>
+        <div className="h-[300px] flex items-center justify-center text-zinc-600 text-sm">Chưa có dữ liệu</div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
