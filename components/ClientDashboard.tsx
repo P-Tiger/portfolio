@@ -1,15 +1,26 @@
 'use client';
 
+import {
+  AssetRaw,
+  Category,
+  CATEGORY_COLORS,
+  CATEGORY_LABELS,
+  CategoryBreakdown,
+  PortfolioData,
+  PriceMap,
+} from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Dashboard } from './Dashboard';
-import { AssetRaw, Category, CategoryBreakdown, CATEGORY_COLORS, CATEGORY_LABELS, PortfolioData, PriceInfo, PriceMap } from '@/lib/types';
 
 interface ClientDashboardProps {
   data: PortfolioData;
   rawAssets: AssetRaw[];
 }
 
-function resolvePrice(raw: AssetRaw, prices: PriceMap): {
+function resolvePrice(
+  raw: AssetRaw,
+  prices: PriceMap,
+): {
   currentPrice: number;
   change24h: number;
 } {
@@ -19,23 +30,35 @@ function resolvePrice(raw: AssetRaw, prices: PriceMap): {
   switch (raw.category) {
     case 'crypto': {
       const p = prices[raw.symbol.toLowerCase()];
-      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
+      if (p) {
+        currentPrice = p.vnd;
+        change24h = p.change24h;
+      }
       break;
     }
     case 'stock': {
       const key = raw.symbol.toUpperCase();
       const p = prices[key];
-      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
+      if (p) {
+        currentPrice = p.vnd;
+        change24h = p.change24h;
+      }
       break;
     }
     case 'gold': {
       const p = prices['__gold__'];
-      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
+      if (p) {
+        currentPrice = p.vnd;
+        change24h = p.change24h;
+      }
       break;
     }
     case 'usd': {
       const p = prices['__usd__'];
-      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
+      if (p) {
+        currentPrice = p.vnd;
+        change24h = p.change24h;
+      }
       break;
     }
     case 'cash': {

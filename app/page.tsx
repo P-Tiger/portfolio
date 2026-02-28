@@ -1,5 +1,5 @@
-import { getPortfolioDataWithoutPrices } from '@/lib/notion';
 import { ClientDashboard } from '@/components/ClientDashboard';
+import { getPortfolioDataWithoutPrices } from '@/lib/notion';
 import { PortfolioData } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -22,9 +22,7 @@ export default async function Home() {
           <h1 className="text-xl font-bold text-white mb-2">Portfolio Dashboard</h1>
           <p className="text-red-400 text-sm mb-4">Lỗi kết nối Notion API</p>
           <p className="text-zinc-500 text-xs">{error}</p>
-          <p className="text-zinc-600 text-xs mt-4">
-            Kiểm tra NOTION_TOKEN và NOTION_DATABASE_ID trong .env.local
-          </p>
+          <p className="text-zinc-600 text-xs mt-4">Kiểm tra NOTION_TOKEN và NOTION_DATABASE_ID trong .env.local</p>
         </div>
       </main>
     );
@@ -34,9 +32,7 @@ export default async function Home() {
     <main className="min-h-screen px-4 py-6 max-w-6xl mx-auto">
       <div className="mb-6 flex items-baseline justify-between">
         <h1 className="text-2xl sm:text-3xl font-bold text-white">Portfolio Dashboard</h1>
-        <p className="text-zinc-500 text-xs hidden sm:block">
-          Cập nhật: {data.lastUpdated}
-        </p>
+        <p className="text-zinc-500 text-xs hidden sm:block">Cập nhật: {data.lastUpdated}</p>
       </div>
 
       <ClientDashboard data={data} rawAssets={data.rawAssets || []} />

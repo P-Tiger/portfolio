@@ -1,7 +1,7 @@
 'use client';
 
-import { PortfolioData } from '@/lib/types';
 import { formatVND } from '@/lib/format';
+import { PortfolioData } from '@/lib/types';
 import { AnimatedNumber } from './AnimatedNumber';
 
 interface PortfolioSummaryProps {
@@ -58,9 +58,7 @@ export function PortfolioSummary({ data }: PortfolioSummaryProps) {
             )}
             <span className="text-xs sm:text-sm text-zinc-500 ml-1 font-normal">{card.suffix}</span>
           </p>
-          {card.sub && (
-            <p className={`text-xs sm:text-sm mt-1 ${card.color}`}>{card.sub}</p>
-          )}
+          {card.sub && <p className={`text-xs sm:text-sm mt-1 ${card.color}`}>{card.sub}</p>}
         </div>
       ))}
     </div>
