@@ -1,6 +1,6 @@
 import { PriceMap } from './types';
 
-// Mapping CoinGecko ID -> Binance symbol ticker
+// Mapping CoinGecko ID -> major exchange symbol ticker
 const CRYPTO_ID_TO_BINANCE_TICKER: Record<string, string> = {
   bitcoin: 'BTC',
   ethereum: 'ETH',
@@ -19,7 +19,7 @@ const CRYPTO_ID_TO_BINANCE_TICKER: Record<string, string> = {
   toncoin: 'TON',
 };
 
-// Mapping CoinGecko ID -> currency ticker for fallback API
+// Mapping CoinGecko ID -> currency ticker (used by historical fallback API)
 const CRYPTO_ID_TO_TICKER: Record<string, string> = {
   bitcoin: 'btc',
   ethereum: 'eth',
@@ -60,17 +60,10 @@ async function getCachedUsdRate(): Promise<number> {
 // ============ CRYPTO ============
 export async function fetchCryptoPrices(ids: string[]): Promise<PriceMap> {
   if (ids.length === 0) return {};
-
-  // Try Binance first
-  const binance = await fetchCryptoBinance(ids);
-  if (Object.keys(binance).length > 0) return binance;
-
-  // Fallback to fawazahmed0
-  console.log('[prices] Binance failed, trying fawazahmed0 fallback...');
-  return fetchCryptoFallback(ids);
+  return fetchCryptoOkx(ids);
 }
 
-async function fetchCryptoBinance(ids: string[]): Promise<PriceMap> {
+async function fetchCryptoOkx(ids: string[]): Promise<PriceMap> {
   try {
     // Use cached USD rate (5-min TTL) instead of blocking fetch every time
     const usdToVnd = await getCachedUsdRate();
@@ -79,85 +72,81 @@ async function fetchCryptoBinance(ids: string[]): Promise<PriceMap> {
       return {};
     }
 
-    // Build symbol-to-id mapping: "BTCUSDT" -> "btcusdt" (original id)
-    const symbolToId: Record<string, string> = {};
+    // Build instrument mapping: "BTC-USDT" -> original id in our system
+    const instIdToId: Record<string, string> = {};
     for (const id of ids) {
-      let symbol = id.toUpperCase();
-      if (!symbol.endsWith('USDT')) {
+      const upper = id.toUpperCase();
+      let ticker = '';
+
+      if (upper.endsWith('USDT')) {
+        ticker = upper.replace(/USDT$/, '');
+      } else {
         const ticker = CRYPTO_ID_TO_BINANCE_TICKER[id.toLowerCase()];
         if (!ticker) {
-          console.warn(`[prices] No Binance ticker for "${id}"`);
+          console.warn(`[prices] No symbol mapping for "${id}"`);
           continue;
         }
-        symbol = `${ticker}USDT`;
+        instIdToId[`${ticker}-USDT`] = id;
+        continue;
       }
-      symbolToId[symbol] = id;
+
+      instIdToId[`${ticker}-USDT`] = id;
     }
 
-    const symbols = Object.keys(symbolToId);
-    if (symbols.length === 0) return {};
+    const instIds = Object.keys(instIdToId);
+    if (instIds.length === 0) return {};
 
-    // Single batch request instead of N individual requests
-    const symbolsParam = JSON.stringify(symbols);
-    const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbolsParam)}`;
+    const url = 'https://www.okx.com/api/v5/market/tickers?instType=SPOT';
     const res = await fetch(url, {
       headers: { Accept: 'application/json' },
       cache: 'no-store',
     });
 
     if (!res.ok) {
-      console.warn(`[prices] Binance batch HTTP ${res.status}`);
+      console.warn(`[prices] OKX tickers HTTP ${res.status}`);
       return {};
     }
 
-    const data: Array<{ symbol: string; lastPrice: string; priceChangePercent: string }> = await res.json();
+    const data: {
+      code?: string;
+      msg?: string;
+      data?: Array<{ instId: string; last: string; open24h: string }>;
+    } = await res.json();
+
+    if (data.code !== '0' || !data.data?.length) {
+      console.warn(`[prices] OKX tickers response invalid: ${data.msg ?? data.code ?? 'unknown'}`);
+      return {};
+    }
+
+    const requestedInstIds = new Set(instIds);
     const map: PriceMap = {};
 
-    for (const item of data) {
-      const id = symbolToId[item.symbol];
+    for (const item of data.data) {
+      if (!item.instId.endsWith('-USDT')) continue;
+      if (!requestedInstIds.has(item.instId)) continue;
+
+      const id = instIdToId[item.instId];
       if (!id) continue;
-      const priceUsd = parseFloat(item.lastPrice);
-      const change24h = parseFloat(item.priceChangePercent);
+
+      const priceUsd = parseFloat(item.last);
+      const open24h = parseFloat(item.open24h);
+      const change24h = open24h > 0 ? ((priceUsd - open24h) / open24h) * 100 : 0;
+
       if (priceUsd > 0) {
-        map[id] = { vnd: priceUsd * usdToVnd, change24h: change24h || 0 };
-        console.log(`[prices] Binance OK: ${id} = ${map[id].vnd} VND`);
+        map[id] = { vnd: priceUsd * usdToVnd, change24h };
       }
     }
 
     if (Object.keys(map).length > 0) {
-      console.log(`[prices] Binance batch OK: ${Object.keys(map).join(', ')}`);
+      console.log(`[prices] OKX SPOT tickers OK: ${Object.keys(map).join(', ')}`);
+    } else {
+      console.warn('[prices] OKX SPOT tickers returned no matched USDT pairs');
     }
     return map;
   } catch (e) {
-    console.error('[prices] Binance error:', (e as Error).message);
+    console.error('[prices] OKX error:', (e as Error).message);
     return {};
   }
-}
-
-async function fetchCryptoFallback(ids: string[]): Promise<PriceMap> {
-  const map: PriceMap = {};
-  const promises = ids.map(async (id) => {
-    const ticker = CRYPTO_ID_TO_TICKER[id];
-    if (!ticker) {
-      console.warn(`[prices] No ticker mapping for "${id}", skipping fallback`);
-      return;
-    }
-    try {
-      const url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${ticker}.json`;
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) return;
-      const data = await res.json();
-      const vnd = data[ticker]?.vnd;
-      if (vnd && vnd > 0) {
-        map[id] = { vnd, change24h: 0 };
-        console.log(`[prices] Fallback OK: ${id} = ${vnd} VND`);
-      }
-    } catch {
-      console.error(`[prices] Fallback failed for ${id}`);
-    }
-  });
-  await Promise.all(promises);
-  return map;
 }
 
 // ============ VN STOCKS (CafeF) - parallel exchange fetch ============
@@ -491,7 +480,7 @@ export async function fetchAllPrices(
   const results = await Promise.all(promises);
   const merged = Object.assign({}, ...results);
 
-  // Get USD rate from cache (already populated by fetchCryptoBinance) instead of duplicate fetch
+  // Get USD rate from cache (already populated by fetchCryptoOkx) instead of duplicate fetch
   if (hasUsd) {
     const rate = await getCachedUsdRate();
     if (rate > 0) {
