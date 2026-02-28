@@ -166,37 +166,47 @@ export function ClientDashboard({ data, rawAssets }: ClientDashboardProps) {
     // Only start fetching after hydration is complete
     if (!hydrated) return;
 
-    // Fetch prices immediately and silently (no loading state)
-    const fetchPrices = async () => {
+    const fetchPortfolioData = async () => {
       try {
-        console.log('[dashboard] Fetching fresh prices...');
-        const response = await fetch('/api/refresh-prices');
+        console.log('[dashboard] Fetching portfolio data (Notion + prices)...');
+        const response = await fetch('/api/portfolio-data');
         if (!response.ok) {
-          console.error('[dashboard] Failed to fetch prices:', response.statusText);
+          console.error('[dashboard] Failed to fetch portfolio data:', response.statusText);
           return;
         }
-        const prices: PriceMap = await response.json();
-        console.log('[dashboard] Fresh prices received, updating dashboard');
+        const newData: PortfolioData = await response.json();
+        console.log('[dashboard] Portfolio data received, updating dashboard');
 
-        // Save to localStorage for next load
-        savePricesToStorage(prices);
+        // Save prices to localStorage for next load
+        const priceMap: PriceMap = {};
+        for (const asset of newData.rawAssets || []) {
+          const assetData = newData.assets.find((a) => a.id === asset.id);
+          if (assetData) {
+            priceMap[asset.symbol.toLowerCase()] = {
+              vnd: assetData.currentPrice,
+              change24h: assetData.change24h,
+            };
+          }
+        }
+        if (Object.keys(priceMap).length > 0) {
+          savePricesToStorage(priceMap);
+        }
 
-        const newData = recalculatePortfolioData(rawAssets, prices);
         setPortfolioData(newData);
       } catch (e) {
-        console.error('[dashboard] Error refreshing prices:', (e as Error).message);
-        // Silently fail - keep showing old data
+        console.error('[dashboard] Error fetching portfolio data:', (e as Error).message);
+        // Silently fail - keep showing current data
       }
     };
 
     // Fetch immediately
-    fetchPrices();
+    fetchPortfolioData();
 
     // Then refresh every 5 seconds
-    const interval = setInterval(fetchPrices, 5000);
+    const interval = setInterval(fetchPortfolioData, 5000);
 
     return () => clearInterval(interval);
-  }, [hydrated, rawAssets]);
+  }, [hydrated]);
 
   // Show dashboard - all Notion data visible immediately
   return <Dashboard data={portfolioData} />;

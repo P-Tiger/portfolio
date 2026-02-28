@@ -1,44 +1,34 @@
 import { ClientDashboard } from '@/components/ClientDashboard';
-import { getPortfolioDataWithoutPrices } from '@/lib/notion';
 import { PortfolioData } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 300;
 
-export default async function Home() {
-  let data: PortfolioData | null = null;
-  let error: string | null = null;
+// Empty initial data structure
+const emptyData: PortfolioData = {
+  assets: [],
+  totalValue: 0,
+  totalCost: 0,
+  totalPnl: 0,
+  totalPnlPercent: 0,
+  categoryBreakdown: [],
+  lastUpdated: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+};
 
-  try {
-    data = await getPortfolioDataWithoutPrices();
-  } catch (e) {
-    error = e instanceof Error ? e.message : 'Không thể kết nối Notion';
-  }
-
-  if (error || !data) {
-    return (
-      <main className="min-h-screen px-4 py-8 max-w-6xl mx-auto flex items-center justify-center">
-        <div className="animate-fade-in bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center max-w-md">
-          <h1 className="text-xl font-bold text-white mb-2">Portfolio Dashboard</h1>
-          <p className="text-red-400 text-sm mb-4">Lỗi kết nối Notion API</p>
-          <p className="text-zinc-500 text-xs">{error}</p>
-          <p className="text-zinc-600 text-xs mt-4">Kiểm tra NOTION_TOKEN và NOTION_DATABASE_ID trong .env.local</p>
-        </div>
-      </main>
-    );
-  }
-
+export default function Home() {
+  // Return immediately without waiting for Notion fetch
+  // Client will fetch full data (Notion + prices) and update
   return (
     <main className="min-h-screen px-4 py-6 max-w-6xl mx-auto">
       <div className="mb-6 flex items-baseline justify-between">
         <h1 className="text-2xl sm:text-3xl font-bold text-white">Portfolio Dashboard</h1>
-        <p className="text-zinc-500 text-xs hidden sm:block">Cập nhật: {data.lastUpdated}</p>
+        <p className="text-zinc-500 text-xs hidden sm:block">Cập nhật: {emptyData.lastUpdated}</p>
       </div>
 
-      <ClientDashboard data={data} rawAssets={data.rawAssets || []} />
+      <ClientDashboard data={emptyData} rawAssets={[]} />
 
       <footer className="mt-12 pb-8 text-center text-xs text-zinc-600">
-        Dữ liệu từ Notion &middot; Giá realtime từ CoinGecko, CafeF, fawazahmed0 &middot; Cập nhật mỗi 5 phút
+        Dữ liệu từ Notion &middot; Giá realtime từ Binance, CafeF &middot; Cập nhật mỗi 5 phút
       </footer>
     </main>
   );
