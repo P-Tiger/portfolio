@@ -1,17 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { Asset } from '@/lib/types';
+import { Asset, TransactionRaw } from '@/lib/types';
 import { formatVNDFull, formatQuantity } from '@/lib/format';
 import { getAssetIcon } from '@/lib/icons';
 import { CategoryBadge } from './CategoryBadge';
+import { TransactionDetailModal } from './TransactionDetailModal';
 
 type SortKey = 'name' | 'category' | 'quantity' | 'buyPrice' | 'currentPrice' | 'totalValue' | 'pnl' | 'pnlPercent';
 type SortDirection = 'asc' | 'desc';
 
-export function AssetTable({ assets, showCategory = true }: { assets: Asset[]; showCategory?: boolean }) {
+export function AssetTable({ assets, showCategory = true, transactions = [] }: { assets: Asset[]; showCategory?: boolean; transactions?: TransactionRaw[] }) {
   const [sortKey, setSortKey] = useState<SortKey>('totalValue');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -103,7 +105,7 @@ export function AssetTable({ assets, showCategory = true }: { assets: Asset[]; s
                 onClick={() => handleSort('buyPrice')}
               >
                 <div className="flex items-center justify-end">
-                  Giá mua
+                  Giá TB ròng
                   <SortIndicator active={sortKey === 'buyPrice'} />
                 </div>
               </th>
@@ -139,10 +141,12 @@ export function AssetTable({ assets, showCategory = true }: { assets: Asset[]; s
           <tbody>
             {sortedAssets.map((asset, i) => {
               const isPnlPositive = asset.pnl >= 0;
+              const isSoldOut = asset.quantity <= 0;
               return (
                 <tr
                   key={asset.id}
-                  className={`animate-fade-in delay-${Math.min(i + 1, 8)} border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors`}
+                  onClick={() => setSelectedAsset(asset)}
+                  className={`animate-fade-in delay-${Math.min(i + 1, 8)} border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors cursor-pointer ${isSoldOut ? 'opacity-50' : ''}`}
                 >
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2">
@@ -164,7 +168,7 @@ export function AssetTable({ assets, showCategory = true }: { assets: Asset[]; s
                     </td>
                   )}
                   <td className="px-5 py-3 text-right text-zinc-300">{formatQuantity(asset.quantity)}</td>
-                  <td className="px-5 py-3 text-right text-zinc-300">{formatVNDFull(asset.buyPrice)}</td>
+                  <td className={`px-5 py-3 text-right ${asset.buyPrice < 0 ? 'text-emerald-400' : 'text-zinc-300'}`}>{formatVNDFull(asset.buyPrice)}</td>
                   <td className="px-5 py-3 text-right text-zinc-300">
                     {formatVNDFull(asset.currentPrice)}
                   </td>
@@ -193,7 +197,7 @@ export function AssetTable({ assets, showCategory = true }: { assets: Asset[]; s
             { key: 'totalValue' as SortKey, label: 'Giá trị' },
             { key: 'pnl' as SortKey, label: 'P&L' },
             { key: 'quantity' as SortKey, label: 'SL' },
-            { key: 'buyPrice' as SortKey, label: 'Giá mua' },
+            { key: 'buyPrice' as SortKey, label: 'Giá TB' },
             { key: 'currentPrice' as SortKey, label: 'Giá TT' },
             { key: 'name' as SortKey, label: 'Tên' },
           ].map((option) => (
@@ -213,8 +217,9 @@ export function AssetTable({ assets, showCategory = true }: { assets: Asset[]; s
         <div className="divide-y divide-zinc-800/50">
         {sortedAssets.map((asset, i) => {
           const isPnlPositive = asset.pnl >= 0;
+          const isSoldOut = asset.quantity <= 0;
           return (
-            <div key={asset.id} className={`animate-fade-in delay-${Math.min(i + 1, 8)} p-4 hover:bg-zinc-800/20`}>
+            <div key={asset.id} onClick={() => setSelectedAsset(asset)} className={`animate-fade-in delay-${Math.min(i + 1, 8)} p-4 hover:bg-zinc-800/20 cursor-pointer ${isSoldOut ? 'opacity-50' : ''}`}>
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-start gap-2">
                   <span className="text-xl">{getAssetIcon(asset.category, asset.symbol)}</span>
@@ -256,6 +261,14 @@ export function AssetTable({ assets, showCategory = true }: { assets: Asset[]; s
         })}
         </div>
       </div>
+
+      {selectedAsset && (
+        <TransactionDetailModal
+          asset={selectedAsset}
+          transactions={transactions}
+          onClose={() => setSelectedAsset(null)}
+        />
+      )}
     </div>
   );
 }

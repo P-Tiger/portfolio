@@ -1,5 +1,5 @@
 /**
- * Script tạo Notion Database với schema mới + dữ liệu mẫu.
+ * Script tạo Notion Database với schema mới (Transaction-based) + dữ liệu mẫu.
  *
  * Cách dùng:
  *   1. Tạo Notion Integration tại https://www.notion.so/my-integrations
@@ -23,45 +23,51 @@ if (!process.env.NOTION_TOKEN || !parentPageId) {
   process.exit(1);
 }
 
-const sampleAssets = [
-  {
-    name: 'Bitcoin (BTC)',
-    category: 'crypto',
-    quantity: 0.05,
-    buyPrice: 2500000000,
-    symbol: 'bitcoin',
-    note: 'Hold dài hạn',
-  },
-  { name: 'Ethereum (ETH)', category: 'crypto', quantity: 1.2, buyPrice: 82000000, symbol: 'ethereum', note: '' },
-  { name: 'SJC 1 chỉ', category: 'gold', quantity: 5, buyPrice: 9200000, symbol: '', note: 'Vàng miếng SJC' },
-  { name: 'USD tiền mặt', category: 'usd', quantity: 2000, buyPrice: 24800, symbol: '', note: 'Giá quy đổi VND/USD' },
-  {
-    name: 'VCB - Vietcombank',
-    category: 'stock',
-    quantity: 500,
-    buyPrice: 88000,
-    symbol: 'VCB',
-    note: 'Cổ phiếu ngân hàng',
-  },
-  {
-    name: 'FPT Corporation',
-    category: 'stock',
-    quantity: 200,
-    buyPrice: 120000,
-    symbol: 'FPT',
-    note: 'Cổ phiếu công nghệ',
-  },
-  { name: 'Tiền mặt VND', category: 'cash', quantity: 50000000, buyPrice: 1, symbol: '', note: 'Tiền gửi ngân hàng' },
+const sampleTransactions = [
+  // Bitcoin: 2 buy + 1 sell (DCA + partial sell)
+  { name: 'Bitcoin (BTC)', date: '2024-01-15', type: 'Buy', symbol: 'bitcoin', category: 'crypto', price: 2200000000, quantity: 0.03, note: 'DCA lần 1' },
+  { name: 'Bitcoin (BTC)', date: '2024-06-01', type: 'Buy', symbol: 'bitcoin', category: 'crypto', price: 2800000000, quantity: 0.04, note: 'DCA lần 2' },
+  { name: 'Bitcoin (BTC)', date: '2024-09-15', type: 'Sell', symbol: 'bitcoin', category: 'crypto', price: 3000000000, quantity: 0.02, note: 'Chốt lời 1 phần' },
+
+  // Ethereum: 1 buy
+  { name: 'Ethereum (ETH)', date: '2024-03-10', type: 'Buy', symbol: 'ethereum', category: 'crypto', price: 82000000, quantity: 1.2, note: '' },
+
+  // Gold: 1 buy
+  { name: 'SJC 1 chỉ', date: '2024-02-20', type: 'Buy', symbol: '', category: 'gold', price: 9200000, quantity: 5, note: 'Vàng miếng SJC' },
+
+  // USD: 1 buy
+  { name: 'USD tiền mặt', date: '2024-01-05', type: 'Buy', symbol: '', category: 'usd', price: 24800, quantity: 2000, note: 'Giá quy đổi VND/USD' },
+
+  // Stock VCB: 1 buy
+  { name: 'VCB - Vietcombank', date: '2024-04-10', type: 'Buy', symbol: 'VCB', category: 'stock', price: 88000, quantity: 500, note: 'Cổ phiếu ngân hàng' },
+
+  // Stock FPT: 2 buy + 1 partial sell
+  { name: 'FPT Corporation', date: '2024-03-01', type: 'Buy', symbol: 'FPT', category: 'stock', price: 110000, quantity: 100, note: 'Cổ phiếu công nghệ' },
+  { name: 'FPT Corporation', date: '2024-05-15', type: 'Buy', symbol: 'FPT', category: 'stock', price: 130000, quantity: 100, note: 'Mua thêm' },
+  { name: 'FPT Corporation', date: '2024-08-01', type: 'Sell', symbol: 'FPT', category: 'stock', price: 145000, quantity: 50, note: 'Chốt lời 1 phần' },
+
+  // Cash: 1 buy (nạp tiền)
+  { name: 'Tiền mặt VND', date: '2024-01-01', type: 'Buy', symbol: '', category: 'cash', price: 1, quantity: 50000000, note: 'Tiền gửi ngân hàng' },
 ];
 
 async function main() {
-  console.log('Đang tạo Notion Database...\n');
+  console.log('Đang tạo Notion Database (Transaction-based)...\n');
 
   const db = await notion.databases.create({
     parent: { type: 'page_id', page_id: parentPageId },
-    title: [{ type: 'text', text: { content: 'Portfolio Assets' } }],
+    title: [{ type: 'text', text: { content: 'Portfolio Transactions' } }],
     properties: {
       Name: { title: {} },
+      Date: { date: {} },
+      Type: {
+        select: {
+          options: [
+            { name: 'Buy', color: 'green' },
+            { name: 'Sell', color: 'red' },
+          ],
+        },
+      },
+      Symbol: { rich_text: {} },
       Category: {
         select: {
           options: [
@@ -73,9 +79,8 @@ async function main() {
           ],
         },
       },
+      Price: { number: { format: 'number' } },
       Quantity: { number: { format: 'number' } },
-      'Buy Price': { number: { format: 'number' } },
-      Symbol: { rich_text: {} },
       Note: { rich_text: {} },
     },
   });
@@ -84,21 +89,23 @@ async function main() {
   console.log(`  ID: ${db.id}`);
   console.log(`  URL: ${db.url}\n`);
 
-  console.log('Đang thêm dữ liệu mẫu...\n');
+  console.log('Đang thêm transactions mẫu...\n');
 
-  for (const asset of sampleAssets) {
+  for (const tx of sampleTransactions) {
     await notion.pages.create({
       parent: { database_id: db.id },
       properties: {
-        Name: { title: [{ text: { content: asset.name } }] },
-        Category: { select: { name: asset.category } },
-        Quantity: { number: asset.quantity },
-        'Buy Price': { number: asset.buyPrice },
-        Symbol: asset.symbol ? { rich_text: [{ text: { content: asset.symbol } }] } : { rich_text: [] },
-        Note: asset.note ? { rich_text: [{ text: { content: asset.note } }] } : { rich_text: [] },
+        Name: { title: [{ text: { content: tx.name } }] },
+        Date: { date: { start: tx.date } },
+        Type: { select: { name: tx.type } },
+        Symbol: tx.symbol ? { rich_text: [{ text: { content: tx.symbol } }] } : { rich_text: [] },
+        Category: { select: { name: tx.category } },
+        Price: { number: tx.price },
+        Quantity: { number: tx.quantity },
+        Note: tx.note ? { rich_text: [{ text: { content: tx.note } }] } : { rich_text: [] },
       },
     });
-    console.log(`  + ${asset.name} ${asset.symbol ? `(${asset.symbol})` : ''}`);
+    console.log(`  + [${tx.type}] ${tx.name} ${tx.symbol ? `(${tx.symbol})` : ''} x${tx.quantity} @ ${tx.price}`);
   }
 
   console.log('\n====================================');

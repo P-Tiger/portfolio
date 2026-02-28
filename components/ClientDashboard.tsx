@@ -8,6 +8,7 @@ import {
   CategoryBreakdown,
   PortfolioData,
   PriceMap,
+  TransactionRaw,
 } from '@/lib/types';
 import { useEffect, useRef, useState } from 'react';
 import { Dashboard } from './Dashboard';
@@ -61,10 +62,27 @@ function resolvePrice(raw: AssetRaw, prices: PriceMap) {
 function buildPortfolioData(rawAssets: AssetRaw[], prices: PriceMap): PortfolioData {
   const assets = rawAssets.map((raw) => {
     const { currentPrice, change24h } = resolvePrice(raw, prices);
-    const totalValue = raw.quantity * currentPrice;
-    const totalCost = raw.quantity * raw.buyPrice;
-    const pnl = totalValue - totalCost;
-    const pnlPercent = totalCost > 0 ? (pnl / totalCost) * 100 : 0;
+
+    let totalValue: number;
+    let totalCost: number;
+    let pnl: number;
+    let pnlPercent: number;
+
+    if (raw.quantity <= 0) {
+      // Fully sold: realized P&L only
+      totalValue = 0;
+      totalCost = raw.totalCostGross;
+      pnl = raw.totalProceeds - raw.totalCostGross;
+      pnlPercent = raw.totalCostGross > 0 ? (pnl / raw.totalCostGross) * 100 : 0;
+    } else {
+      // Still holding: unrealized P&L using netCost
+      totalValue = raw.quantity * currentPrice;
+      const netCost = raw.totalCostGross - raw.totalProceeds;
+      totalCost = netCost;
+      pnl = totalValue - netCost;
+      pnlPercent = raw.totalCostGross > 0 ? (pnl / raw.totalCostGross) * 100 : 0;
+    }
+
     return { ...raw, currentPrice, change24h, totalValue, totalCost, pnl, pnlPercent };
   });
 
@@ -130,7 +148,18 @@ function savePrices(prices: PriceMap) {
 function loadRawAssets(): AssetRaw[] {
   try {
     const s = localStorage.getItem('portfolio-raw-assets');
-    return s ? JSON.parse(s) : [];
+    if (!s) return [];
+    const parsed = JSON.parse(s) as Array<Record<string, unknown>>;
+    // Migrate old format: add default values for new transaction fields
+    return parsed.map((a: Record<string, unknown>) => ({
+      ...a,
+      totalBuyQty: (a.totalBuyQty as number) ?? (a.quantity as number) ?? 0,
+      totalSellQty: (a.totalSellQty as number) ?? 0,
+      totalCostGross: (a.totalCostGross as number) ?? ((a.quantity as number) ?? 0) * ((a.buyPrice as number) ?? 0),
+      totalProceeds: (a.totalProceeds as number) ?? 0,
+      avgBuyPrice: (a.avgBuyPrice as number) ?? (a.buyPrice as number) ?? 0,
+      transactionCount: (a.transactionCount as number) ?? 1,
+    })) as AssetRaw[];
   } catch {
     return [];
   }
@@ -184,6 +213,7 @@ export function ClientDashboard() {
     return emptyData;
   });
   const rawAssetsRef = useRef<AssetRaw[]>(loadRawAssets());
+  const transactionsRef = useRef<TransactionRaw[]>([]);
   const [refreshIntervalSec, setRefreshIntervalSec] = useState<number>(() => loadRefreshIntervalSec());
 
   useEffect(() => {
@@ -191,17 +221,19 @@ export function ClientDashboard() {
       try {
         const res = await fetch('/api/portfolio-data');
         if (!res.ok) return;
-        const notionData: PortfolioData & { rawAssets?: AssetRaw[] } = await res.json();
+        const notionData: PortfolioData & { rawAssets?: AssetRaw[]; transactions?: TransactionRaw[] } = await res.json();
         const raw = notionData.rawAssets || [];
         rawAssetsRef.current = raw;
+        transactionsRef.current = notionData.transactions || [];
         saveRawAssets(raw);
 
         // Rebuild with current prices + fresh assets
         const prices = loadPrices();
         if (Object.keys(prices).length > 0) {
-          setPortfolioData(buildPortfolioData(raw, prices));
+          const built = buildPortfolioData(raw, prices);
+          setPortfolioData({ ...built, transactions: transactionsRef.current });
         } else {
-          setPortfolioData(notionData);
+          setPortfolioData({ ...notionData, transactions: transactionsRef.current });
         }
       } catch (e) {
         console.error('[dashboard] Notion fetch error:', (e as Error).message);
@@ -215,7 +247,8 @@ export function ClientDashboard() {
         if (!res.ok) return;
         const prices: PriceMap = await res.json();
         savePrices(prices);
-        setPortfolioData(buildPortfolioData(rawAssetsRef.current, prices));
+        const built = buildPortfolioData(rawAssetsRef.current, prices);
+        setPortfolioData({ ...built, transactions: transactionsRef.current });
       } catch (e) {
         console.error('[dashboard] Prices fetch error:', (e as Error).message);
       }

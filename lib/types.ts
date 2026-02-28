@@ -1,13 +1,33 @@
 export type Category = 'crypto' | 'gold' | 'usd' | 'stock' | 'cash';
 
+export type TransactionType = 'Buy' | 'Sell';
+
+export interface TransactionRaw {
+  id: string;
+  name: string;
+  date: string;
+  type: TransactionType;
+  symbol: string;
+  category: Category;
+  price: number;
+  quantity: number;
+  note: string;
+}
+
 export interface AssetRaw {
   id: string;
   name: string;
   category: Category;
-  quantity: number;
-  buyPrice: number;
+  quantity: number;       // holdings = totalBuyQty - totalSellQty
+  buyPrice: number;       // avgNetCost = (totalCostGross - totalProceeds) / holdings
   symbol: string;
   note: string;
+  totalBuyQty: number;
+  totalSellQty: number;
+  totalCostGross: number;
+  totalProceeds: number;
+  avgBuyPrice: number;
+  transactionCount: number;
 }
 
 export interface Asset extends AssetRaw {
@@ -45,6 +65,7 @@ export interface PortfolioData {
   categoryBreakdown: CategoryBreakdown[];
   lastUpdated: string;
   rawAssets?: AssetRaw[]; // For client-side price recalculation
+  transactions?: TransactionRaw[]; // For transaction detail popup
 }
 
 export type PriceInfo = {

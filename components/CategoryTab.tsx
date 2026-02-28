@@ -1,6 +1,6 @@
 'use client';
 
-import { Asset, Category, CATEGORY_LABELS, CATEGORY_COLORS } from '@/lib/types';
+import { Asset, Category, CATEGORY_LABELS, CATEGORY_COLORS, TransactionRaw } from '@/lib/types';
 import { formatVND } from '@/lib/format';
 import { AnimatedNumber } from './AnimatedNumber';
 import { PnlBarChart } from './PnlBarChart';
@@ -9,9 +9,10 @@ import { AssetTable } from './AssetTable';
 interface Props {
   category: Category;
   assets: Asset[];
+  transactions: TransactionRaw[];
 }
 
-export function CategoryTab({ category, assets }: Props) {
+export function CategoryTab({ category, assets, transactions }: Props) {
   const label = CATEGORY_LABELS[category];
   const color = CATEGORY_COLORS[category];
   const totalValue = assets.reduce((s, a) => s + a.totalValue, 0);
@@ -56,7 +57,7 @@ export function CategoryTab({ category, assets }: Props) {
           </p>
         </div>
         <div className="animate-fade-in delay-2 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-          <p className="text-zinc-400 text-xs mb-2">Vốn bỏ ra</p>
+          <p className="text-zinc-400 text-xs mb-2">Vốn ròng</p>
           <p className="text-xl font-bold text-white">
             <AnimatedNumber value={totalCost} formatter={formatVND} />
             <span className="text-xs text-zinc-500 ml-1 font-normal">VND</span>
@@ -80,7 +81,7 @@ export function CategoryTab({ category, assets }: Props) {
       </div>
 
       {assets.length > 1 && <PnlBarChart assets={assets} />}
-      <AssetTable assets={assets} showCategory={false} />
+      <AssetTable assets={assets} showCategory={false} transactions={transactions} />
     </div>
   );
 }

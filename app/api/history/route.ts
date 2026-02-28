@@ -1,7 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { getCachedAssets } from '@/lib/notion';
-import { fetchAllPricesCached, fetchCryptoHistory, fetchGoldHistory, fetchUsdHistory, fetchStockHistory, HistoryPoint } from '@/lib/prices';
+import {
+  fetchAllPricesCached,
+  fetchCryptoHistory,
+  fetchGoldHistory,
+  fetchStockHistory,
+  fetchUsdHistory,
+  HistoryPoint,
+} from '@/lib/prices';
 import { AssetRaw, Category, PerformancePoint, PriceMap } from '@/lib/types';
+import { NextRequest, NextResponse } from 'next/server';
 
 const TIMEFRAME_DAYS: Record<string, number> = {
   '5m': 1,
@@ -59,7 +66,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([], { status: 400 });
     }
 
-    const rawAssets = await getCachedAssets();
+    const { assets: rawAssets } = await getCachedAssets();
 
     const cryptoIds = rawAssets.filter((a) => a.category === 'crypto' && a.symbol).map((a) => a.symbol.toLowerCase());
     const stockTickers = rawAssets.filter((a) => a.category === 'stock' && a.symbol).map((a) => a.symbol.toUpperCase());
@@ -103,9 +110,12 @@ export async function GET(request: NextRequest) {
     const points: PerformancePoint[] = [];
 
     // Use crypto or stock timestamps as reference timeline (finest granularity)
-    const refHistory = cryptoHistoryMap.size > 0
-      ? cryptoHistoryMap.values().next().value
-      : (stockHistoryMap.size > 0 ? stockHistoryMap.values().next().value : null);
+    const refHistory =
+      cryptoHistoryMap.size > 0
+        ? cryptoHistoryMap.values().next().value
+        : stockHistoryMap.size > 0
+          ? stockHistoryMap.values().next().value
+          : null;
 
     if (refHistory && refHistory.length > 0) {
       const step = Math.max(1, Math.floor(refHistory.length / 40));

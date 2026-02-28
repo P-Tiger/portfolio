@@ -19,7 +19,7 @@ export function PortfolioSummary({ data }: PortfolioSummaryProps) {
       color: 'text-white',
     },
     {
-      label: 'Vốn bỏ ra',
+      label: 'Vốn ròng',
       value: data.totalCost,
       suffix: 'VND',
       color: 'text-white',

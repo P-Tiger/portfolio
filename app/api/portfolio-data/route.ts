@@ -16,6 +16,7 @@ export async function GET() {
       categoryBreakdown: portfolioData.categoryBreakdown,
       lastUpdated: portfolioData.lastUpdated,
       rawAssets: portfolioData.rawAssets,
+      transactions: portfolioData.transactions,
     });
   } catch (e) {
     console.error('[api/portfolio-data] Error:', e);

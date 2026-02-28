@@ -31,7 +31,7 @@ function CustomTooltip({
 
 export function PnlBarChart({ assets }: { assets: Asset[] }) {
   const data = assets
-    .filter((a) => a.totalCost > 0)
+    .filter((a) => a.transactionCount > 0)
     .sort((a, b) => b.pnl - a.pnl)
     .slice(0, 10)
     .map((a) => ({

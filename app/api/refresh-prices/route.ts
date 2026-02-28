@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const ttlParam = Number(request.nextUrl.searchParams.get('cacheTtl') || '30');
     const cacheTtlSec = Number.isFinite(ttlParam) ? Math.max(5, Math.min(120, Math.round(ttlParam))) : 30;
 
-    const assets = await getCachedAssets();
+    const { assets } = await getCachedAssets();
 
     // Determine which price sources we need
     const hasGold = assets.some((a) => a.category === 'gold');
