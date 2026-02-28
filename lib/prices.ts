@@ -38,6 +38,23 @@ const CRYPTO_ID_TO_TICKER: Record<string, string> = {
   toncoin: 'ton',
 };
 
+function resolveCryptoTicker(id: string): string | null {
+  const lower = id.toLowerCase();
+
+  const mapped = CRYPTO_ID_TO_TICKER[lower];
+  if (mapped) return mapped;
+
+  if (lower.endsWith('-usdt')) {
+    return lower.replace(/-usdt$/, '');
+  }
+
+  if (lower.endsWith('usdt')) {
+    return lower.replace(/usdt$/, '');
+  }
+
+  return null;
+}
+
 // ============ USD RATE CACHE (5-min TTL) ============
 let usdRateCache: { rate: number; timestamp: number } | null = null;
 const USD_RATE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -305,7 +322,7 @@ export async function fetchCryptoHistory(id: string, days: number = 30): Promise
   }
 
   // Fallback: fawazahmed0 daily data (same approach as gold/usd history)
-  const ticker = CRYPTO_ID_TO_TICKER[id];
+  const ticker = resolveCryptoTicker(id);
   if (!ticker) {
     console.warn(`[prices] No ticker mapping for "${id}", cannot fetch history fallback`);
     return [];

@@ -1,11 +1,11 @@
 'use client';
 
 import { PortfolioData } from '@/lib/types';
-import { PortfolioSummary } from './PortfolioSummary';
-import { CategoryCards } from './CategoryCards';
 import { AllocationChart } from './AllocationChart';
-import { PnlBarChart } from './PnlBarChart';
 import { AssetTable } from './AssetTable';
+import { CategoryCards } from './CategoryCards';
+import { PnlBarChart } from './PnlBarChart';
+import { PortfolioSummary } from './PortfolioSummary';
 
 export function OverviewTab({ data }: { data: PortfolioData }) {
   return (
