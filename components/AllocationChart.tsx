@@ -1,8 +1,8 @@
 'use client';
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { CategoryBreakdown } from '@/lib/types';
 import { formatVND } from '@/lib/format';
+import { CategoryBreakdown } from '@/lib/types';
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
 function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: CategoryBreakdown }> }) {
   if (!active || !payload?.length) return null;
@@ -55,10 +55,7 @@ export function AllocationChart({ data }: { data: CategoryBreakdown[] }) {
         <div className="w-full md:w-1/2 space-y-3">
           {data.map((item, i) => (
             <div key={item.name} className={`animate-fade-in delay-${i + 1} flex items-center gap-3`}>
-              <div
-                className="w-3 h-3 rounded-full shrink-0"
-                style={{ backgroundColor: item.color }}
-              />
+              <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between text-sm">
                   <span className="text-zinc-300">{item.name}</span>
@@ -76,7 +73,8 @@ export function AllocationChart({ data }: { data: CategoryBreakdown[] }) {
                 <div className="flex justify-between mt-1">
                   <span className="text-xs text-zinc-500">{formatVND(item.value)} VND</span>
                   <span className={`text-xs ${item.pnl >= 0 ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
-                    {item.pnl >= 0 ? '+' : ''}{item.pnlPercent.toFixed(1)}%
+                    {item.pnl >= 0 ? '+' : ''}
+                    {item.pnlPercent.toFixed(1)}%
                   </span>
                 </div>
               </div>

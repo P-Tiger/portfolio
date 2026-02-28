@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCachedAssets } from '@/lib/notion';
-import { fetchAllPrices, fetchCryptoHistory, fetchGoldHistory, fetchUsdHistory, HistoryPoint } from '@/lib/prices';
+import { fetchAllPrices, fetchCryptoHistory, fetchGoldHistory, fetchUsdHistory, fetchStockHistory, HistoryPoint } from '@/lib/prices';
 import { AssetRaw, Category, PerformancePoint, PriceMap } from '@/lib/types';
 
 const TIMEFRAME_DAYS: Record<string, number> = {
@@ -80,17 +80,20 @@ export async function GET(request: NextRequest) {
     const needsCrypto = relevantAssets.some((a) => a.category === 'crypto' && a.symbol);
     const needsGold = relevantAssets.some((a) => a.category === 'gold');
     const needsUsd = relevantAssets.some((a) => a.category === 'usd');
+    const needsStock = relevantAssets.some((a) => a.category === 'stock' && a.symbol);
 
     // Fetch historical data in parallel
-    const [cryptoHistoryMap, goldHistory, usdHistory] = await Promise.all([
+    const [cryptoHistoryMap, goldHistory, usdHistory, stockHistoryMap] = await Promise.all([
       needsCrypto ? fetchCryptoHistories(cryptoIds, days) : new Map<string, HistoryPoint[]>(),
       needsGold && days >= 7 ? fetchGoldHistory(days) : ([] as HistoryPoint[]),
       needsUsd && days >= 7 ? fetchUsdHistory(days) : ([] as HistoryPoint[]),
+      needsStock ? fetchStockHistories(stockTickers, days) : new Map<string, HistoryPoint[]>(),
     ]);
 
-    // Constant-value assets (stock, cash, and categories without history for short timeframes)
+    // Constant-value assets (cash, and categories without history for short timeframes)
     const constantAssets = relevantAssets.filter((a) => {
-      if (a.category === 'stock' || a.category === 'cash') return true;
+      if (a.category === 'cash') return true;
+      if (a.category === 'stock' && !stockHistoryMap.has(a.symbol.toUpperCase())) return true;
       if (a.category === 'gold' && days < 7) return true;
       if (a.category === 'usd' && days < 7) return true;
       return false;
@@ -99,50 +102,64 @@ export async function GET(request: NextRequest) {
 
     const points: PerformancePoint[] = [];
 
-    // Use crypto timestamps as reference timeline (finest granularity)
-    if (cryptoHistoryMap.size > 0) {
-      const refHistory = cryptoHistoryMap.values().next().value;
-      if (refHistory && refHistory.length > 0) {
-        const step = Math.max(1, Math.floor(refHistory.length / 40));
-        for (let i = 0; i < refHistory.length; i += step) {
-          const ts = refHistory[i].timestamp;
-          let value = constantValue;
+    // Use crypto or stock timestamps as reference timeline (finest granularity)
+    const refHistory = cryptoHistoryMap.size > 0
+      ? cryptoHistoryMap.values().next().value
+      : (stockHistoryMap.size > 0 ? stockHistoryMap.values().next().value : null);
 
-          // Crypto contribution
-          for (const asset of relevantAssets.filter((a) => a.category === 'crypto' && a.symbol)) {
-            const history = cryptoHistoryMap.get(asset.symbol.toLowerCase());
-            if (!history) {
-              value += getCurrentValue(asset, prices);
-              continue;
-            }
-            const closest = history.reduce((prev, curr) =>
-              Math.abs(curr.timestamp - ts) < Math.abs(prev.timestamp - ts) ? curr : prev,
-            );
-            value += asset.quantity * closest.price;
+    if (refHistory && refHistory.length > 0) {
+      const step = Math.max(1, Math.floor(refHistory.length / 40));
+      for (let i = 0; i < refHistory.length; i += step) {
+        const ts = refHistory[i].timestamp;
+        let value = constantValue;
+
+        // Crypto contribution
+        for (const asset of relevantAssets.filter((a) => a.category === 'crypto' && a.symbol)) {
+          const history = cryptoHistoryMap.get(asset.symbol.toLowerCase());
+          if (!history) {
+            value += getCurrentValue(asset, prices);
+            continue;
           }
-
-          // Gold contribution (interpolate to closest date)
-          if (goldHistory.length > 0) {
-            const goldAssets = relevantAssets.filter((a) => a.category === 'gold');
-            const totalQty = goldAssets.reduce((s, a) => s + a.quantity, 0);
-            const closest = goldHistory.reduce((prev, curr) =>
-              Math.abs(curr.timestamp - ts) < Math.abs(prev.timestamp - ts) ? curr : prev,
-            );
-            value += totalQty * closest.price;
-          }
-
-          // USD contribution (interpolate to closest date)
-          if (usdHistory.length > 0) {
-            const usdAssets = relevantAssets.filter((a) => a.category === 'usd');
-            const totalQty = usdAssets.reduce((s, a) => s + a.quantity, 0);
-            const closest = usdHistory.reduce((prev, curr) =>
-              Math.abs(curr.timestamp - ts) < Math.abs(prev.timestamp - ts) ? curr : prev,
-            );
-            value += totalQty * closest.price;
-          }
-
-          points.push({ date: formatTimestamp(ts, tf), value: Math.round(value) });
+          const closest = history.reduce((prev, curr) =>
+            Math.abs(curr.timestamp - ts) < Math.abs(prev.timestamp - ts) ? curr : prev,
+          );
+          value += asset.quantity * closest.price;
         }
+
+        // Stock contribution
+        for (const asset of relevantAssets.filter((a) => a.category === 'stock' && a.symbol)) {
+          const history = stockHistoryMap.get(asset.symbol.toUpperCase());
+          if (!history) {
+            value += getCurrentValue(asset, prices);
+            continue;
+          }
+          const closest = history.reduce((prev, curr) =>
+            Math.abs(curr.timestamp - ts) < Math.abs(prev.timestamp - ts) ? curr : prev,
+          );
+          value += asset.quantity * closest.price;
+        }
+
+        // Gold contribution (interpolate to closest date)
+        if (goldHistory.length > 0) {
+          const goldAssets = relevantAssets.filter((a) => a.category === 'gold');
+          const totalQty = goldAssets.reduce((s, a) => s + a.quantity, 0);
+          const closest = goldHistory.reduce((prev, curr) =>
+            Math.abs(curr.timestamp - ts) < Math.abs(prev.timestamp - ts) ? curr : prev,
+          );
+          value += totalQty * closest.price;
+        }
+
+        // USD contribution (interpolate to closest date)
+        if (usdHistory.length > 0) {
+          const usdAssets = relevantAssets.filter((a) => a.category === 'usd');
+          const totalQty = usdAssets.reduce((s, a) => s + a.quantity, 0);
+          const closest = usdHistory.reduce((prev, curr) =>
+            Math.abs(curr.timestamp - ts) < Math.abs(prev.timestamp - ts) ? curr : prev,
+          );
+          value += totalQty * closest.price;
+        }
+
+        points.push({ date: formatTimestamp(ts, tf), value: Math.round(value) });
       }
     } else if (goldHistory.length >= 2 || usdHistory.length >= 2) {
       // No crypto, use gold or USD timestamps as reference
@@ -192,6 +209,17 @@ async function fetchCryptoHistories(ids: string[], days: number): Promise<Map<st
     ids.map(async (id) => {
       const h = await fetchCryptoHistory(id, days);
       if (h.length > 0) map.set(id, h);
+    }),
+  );
+  return map;
+}
+
+async function fetchStockHistories(tickers: string[], days: number): Promise<Map<string, HistoryPoint[]>> {
+  const map = new Map<string, HistoryPoint[]>();
+  await Promise.all(
+    tickers.map(async (ticker) => {
+      const h = await fetchStockHistory(ticker, days);
+      if (h.length > 0) map.set(ticker.toUpperCase(), h);
     }),
   );
   return map;

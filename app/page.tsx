@@ -1,5 +1,5 @@
-import { getPortfolioData } from '@/lib/notion';
-import { Dashboard } from '@/components/Dashboard';
+import { getPortfolioDataWithoutPrices } from '@/lib/notion';
+import { ClientDashboard } from '@/components/ClientDashboard';
 import { PortfolioData } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +10,7 @@ export default async function Home() {
   let error: string | null = null;
 
   try {
-    data = await getPortfolioData();
+    data = await getPortfolioDataWithoutPrices();
   } catch (e) {
     error = e instanceof Error ? e.message : 'Không thể kết nối Notion';
   }
@@ -39,7 +39,7 @@ export default async function Home() {
         </p>
       </div>
 
-      <Dashboard data={data} />
+      <ClientDashboard data={data} rawAssets={data.rawAssets || []} />
 
       <footer className="mt-12 pb-8 text-center text-xs text-zinc-600">
         Dữ liệu từ Notion &middot; Giá realtime từ CoinGecko, CafeF, fawazahmed0 &middot; Cập nhật mỗi 5 phút

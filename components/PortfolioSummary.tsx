@@ -4,7 +4,11 @@ import { PortfolioData } from '@/lib/types';
 import { formatVND } from '@/lib/format';
 import { AnimatedNumber } from './AnimatedNumber';
 
-export function PortfolioSummary({ data }: { data: PortfolioData }) {
+interface PortfolioSummaryProps {
+  data: PortfolioData;
+}
+
+export function PortfolioSummary({ data }: PortfolioSummaryProps) {
   const isPnlPositive = data.totalPnl >= 0;
 
   const cards = [

@@ -1,10 +1,55 @@
 'use client';
 
+import { useState } from 'react';
 import { Asset } from '@/lib/types';
 import { formatVNDFull, formatQuantity } from '@/lib/format';
+import { getAssetIcon } from '@/lib/icons';
 import { CategoryBadge } from './CategoryBadge';
 
+type SortKey = 'name' | 'category' | 'quantity' | 'buyPrice' | 'currentPrice' | 'totalValue' | 'pnl' | 'pnlPercent';
+type SortDirection = 'asc' | 'desc';
+
 export function AssetTable({ assets, showCategory = true }: { assets: Asset[]; showCategory?: boolean }) {
+  const [sortKey, setSortKey] = useState<SortKey>('totalValue');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDirection('desc');
+    }
+  };
+
+  const getSortedAssets = () => {
+    const sorted = [...assets].sort((a, b) => {
+      let aVal: any = a[sortKey];
+      let bVal: any = b[sortKey];
+
+      if (sortKey === 'category') {
+        aVal = a.category;
+        bVal = b.category;
+      }
+
+      if (typeof aVal === 'string') {
+        return sortDirection === 'asc'
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+
+      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+
+    return sorted;
+  };
+
+  const SortIndicator = ({ active }: { active: boolean }) => {
+    if (!active) return <span className="text-zinc-600 ml-1">⇅</span>;
+    return <span className="text-emerald-400 ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
+  };
+
+  const sortedAssets = getSortedAssets();
   if (assets.length === 0) {
     return (
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
@@ -24,17 +69,75 @@ export function AssetTable({ assets, showCategory = true }: { assets: Asset[]; s
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-800 text-zinc-400">
-              <th className="text-left px-5 py-3 font-medium">Tài sản</th>
-              {showCategory && <th className="text-left px-5 py-3 font-medium">Loại</th>}
-              <th className="text-right px-5 py-3 font-medium">SL</th>
-              <th className="text-right px-5 py-3 font-medium">Giá mua</th>
-              <th className="text-right px-5 py-3 font-medium">Giá TT</th>
-              <th className="text-right px-5 py-3 font-medium">Giá trị</th>
-              <th className="text-right px-5 py-3 font-medium">P&L</th>
+              <th
+                className="text-left px-5 py-3 font-medium cursor-pointer hover:text-zinc-200 transition-colors"
+                onClick={() => handleSort('name')}
+              >
+                <div className="flex items-center">
+                  Tài sản
+                  <SortIndicator active={sortKey === 'name'} />
+                </div>
+              </th>
+              {showCategory && (
+                <th
+                  className="text-left px-5 py-3 font-medium cursor-pointer hover:text-zinc-200 transition-colors"
+                  onClick={() => handleSort('category')}
+                >
+                  <div className="flex items-center">
+                    Loại
+                    <SortIndicator active={sortKey === 'category'} />
+                  </div>
+                </th>
+              )}
+              <th
+                className="text-right px-5 py-3 font-medium cursor-pointer hover:text-zinc-200 transition-colors"
+                onClick={() => handleSort('quantity')}
+              >
+                <div className="flex items-center justify-end">
+                  SL
+                  <SortIndicator active={sortKey === 'quantity'} />
+                </div>
+              </th>
+              <th
+                className="text-right px-5 py-3 font-medium cursor-pointer hover:text-zinc-200 transition-colors"
+                onClick={() => handleSort('buyPrice')}
+              >
+                <div className="flex items-center justify-end">
+                  Giá mua
+                  <SortIndicator active={sortKey === 'buyPrice'} />
+                </div>
+              </th>
+              <th
+                className="text-right px-5 py-3 font-medium cursor-pointer hover:text-zinc-200 transition-colors"
+                onClick={() => handleSort('currentPrice')}
+              >
+                <div className="flex items-center justify-end">
+                  Giá TT
+                  <SortIndicator active={sortKey === 'currentPrice'} />
+                </div>
+              </th>
+              <th
+                className="text-right px-5 py-3 font-medium cursor-pointer hover:text-zinc-200 transition-colors"
+                onClick={() => handleSort('totalValue')}
+              >
+                <div className="flex items-center justify-end">
+                  Giá trị
+                  <SortIndicator active={sortKey === 'totalValue'} />
+                </div>
+              </th>
+              <th
+                className="text-right px-5 py-3 font-medium cursor-pointer hover:text-zinc-200 transition-colors"
+                onClick={() => handleSort('pnl')}
+              >
+                <div className="flex items-center justify-end">
+                  P&L
+                  <SortIndicator active={sortKey === 'pnl'} />
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {assets.map((asset, i) => {
+            {sortedAssets.map((asset, i) => {
               const isPnlPositive = asset.pnl >= 0;
               return (
                 <tr
@@ -42,13 +145,18 @@ export function AssetTable({ assets, showCategory = true }: { assets: Asset[]; s
                   className={`animate-fade-in delay-${Math.min(i + 1, 8)} border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors`}
                 >
                   <td className="px-5 py-3">
-                    <span className="text-white font-medium">{asset.name}</span>
-                    {asset.change24h !== 0 && (
-                      <span className={`ml-2 text-xs ${asset.change24h >= 0 ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
-                        24h: {asset.change24h >= 0 ? '+' : ''}{asset.change24h.toFixed(1)}%
-                      </span>
-                    )}
-                    {asset.note && <span className="block text-xs text-zinc-500 mt-0.5">{asset.note}</span>}
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{getAssetIcon(asset.category, asset.symbol)}</span>
+                      <div>
+                        <span className="text-white font-medium">{asset.name}</span>
+                        {asset.change24h !== 0 && (
+                          <span className={`ml-2 text-xs ${asset.change24h >= 0 ? 'text-emerald-400/70' : 'text-red-400/70'}`}>
+                            24h: {asset.change24h >= 0 ? '+' : ''}{asset.change24h.toFixed(1)}%
+                          </span>
+                        )}
+                        {asset.note && <span className="block text-xs text-zinc-500 mt-0.5">{asset.note}</span>}
+                      </div>
+                    </div>
                   </td>
                   {showCategory && (
                     <td className="px-5 py-3">
@@ -57,8 +165,12 @@ export function AssetTable({ assets, showCategory = true }: { assets: Asset[]; s
                   )}
                   <td className="px-5 py-3 text-right text-zinc-300">{formatQuantity(asset.quantity)}</td>
                   <td className="px-5 py-3 text-right text-zinc-300">{formatVNDFull(asset.buyPrice)}</td>
-                  <td className="px-5 py-3 text-right text-zinc-300">{formatVNDFull(asset.currentPrice)}</td>
-                  <td className="px-5 py-3 text-right text-white font-medium">{formatVNDFull(asset.totalValue)}</td>
+                  <td className="px-5 py-3 text-right text-zinc-300">
+                    {formatVNDFull(asset.currentPrice)}
+                  </td>
+                  <td className="px-5 py-3 text-right text-white font-medium">
+                    {formatVNDFull(asset.totalValue)}
+                  </td>
                   <td className="px-5 py-3 text-right">
                     <span className={isPnlPositive ? 'text-emerald-400' : 'text-red-400'}>
                       {isPnlPositive ? '+' : ''}{formatVNDFull(asset.pnl)}
@@ -74,18 +186,44 @@ export function AssetTable({ assets, showCategory = true }: { assets: Asset[]; s
         </table>
       </div>
 
-      {/* Mobile cards */}
-      <div className="md:hidden divide-y divide-zinc-800/50">
-        {assets.map((asset, i) => {
+      {/* Mobile cards with sort options */}
+      <div className="md:hidden">
+        <div className="px-5 py-3 border-b border-zinc-800 flex gap-2 overflow-x-auto scrollbar-none">
+          {[
+            { key: 'totalValue' as SortKey, label: 'Giá trị' },
+            { key: 'pnl' as SortKey, label: 'P&L' },
+            { key: 'quantity' as SortKey, label: 'SL' },
+            { key: 'buyPrice' as SortKey, label: 'Giá mua' },
+            { key: 'currentPrice' as SortKey, label: 'Giá TT' },
+            { key: 'name' as SortKey, label: 'Tên' },
+          ].map((option) => (
+            <button
+              key={option.key}
+              onClick={() => handleSort(option.key)}
+              className={`px-3 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+                sortKey === option.key
+                  ? 'bg-emerald-400/20 text-emerald-400'
+                  : 'bg-zinc-800/50 text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              {option.label} {sortKey === option.key && (sortDirection === 'asc' ? '↑' : '↓')}
+            </button>
+          ))}
+        </div>
+        <div className="divide-y divide-zinc-800/50">
+        {sortedAssets.map((asset, i) => {
           const isPnlPositive = asset.pnl >= 0;
           return (
             <div key={asset.id} className={`animate-fade-in delay-${Math.min(i + 1, 8)} p-4 hover:bg-zinc-800/20`}>
               <div className="flex items-start justify-between mb-2">
-                <div>
-                  <span className="text-white font-medium">{asset.name}</span>
-                  {showCategory && (
-                    <span className="ml-2"><CategoryBadge category={asset.category} /></span>
-                  )}
+                <div className="flex items-start gap-2">
+                  <span className="text-xl">{getAssetIcon(asset.category, asset.symbol)}</span>
+                  <div>
+                    <span className="text-white font-medium">{asset.name}</span>
+                    {showCategory && (
+                      <span className="ml-2"><CategoryBadge category={asset.category} /></span>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                   <span className={`text-sm font-medium ${isPnlPositive ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -116,6 +254,7 @@ export function AssetTable({ assets, showCategory = true }: { assets: Asset[]; s
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );

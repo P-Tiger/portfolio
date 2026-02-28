@@ -4,7 +4,6 @@ import { Asset, Category, CATEGORY_LABELS, CATEGORY_COLORS } from '@/lib/types';
 import { formatVND } from '@/lib/format';
 import { AnimatedNumber } from './AnimatedNumber';
 import { PnlBarChart } from './PnlBarChart';
-import { PerformanceChart } from './PerformanceChart';
 import { AssetTable } from './AssetTable';
 
 interface Props {
@@ -79,10 +78,6 @@ export function CategoryTab({ category, assets }: Props) {
           </p>
         </div>
       </div>
-
-      {category !== 'cash' && (
-        <PerformanceChart title={`${label} Performance`} category={category} />
-      )}
 
       {assets.length > 1 && <PnlBarChart assets={assets} />}
       <AssetTable assets={assets} showCategory={false} />

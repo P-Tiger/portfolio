@@ -124,17 +124,7 @@ function resolvePrice(raw: AssetRaw, prices: Record<string, { vnd: number; chang
   return { ...raw, currentPrice, change24h, totalValue, totalCost, pnl, pnlPercent };
 }
 
-export async function getPortfolioData(): Promise<PortfolioData> {
-  const rawAssets = await fetchAssetsFromNotion();
-
-  const cryptoIds = rawAssets.filter((a) => a.category === 'crypto' && a.symbol).map((a) => a.symbol.toLowerCase());
-  const stockTickers = rawAssets.filter((a) => a.category === 'stock' && a.symbol).map((a) => a.symbol.toUpperCase());
-  const hasGold = rawAssets.some((a) => a.category === 'gold');
-  const hasUsd = rawAssets.some((a) => a.category === 'usd');
-
-  const prices = await fetchAllPrices(cryptoIds, stockTickers, hasGold, hasUsd);
-  const assets: Asset[] = rawAssets.map((raw) => resolvePrice(raw, prices));
-
+function buildPortfolioData(assets: Asset[]): PortfolioData {
   const totalValue = assets.reduce((sum, a) => sum + a.totalValue, 0);
   const totalCost = assets.reduce((sum, a) => sum + a.totalCost, 0);
   const totalPnl = totalValue - totalCost;
@@ -175,4 +165,36 @@ export async function getPortfolioData(): Promise<PortfolioData> {
     categoryBreakdown,
     lastUpdated: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
   };
+}
+
+export async function getPortfolioDataWithoutPrices(): Promise<PortfolioData> {
+  const rawAssets = await fetchAssetsFromNotion();
+
+  const assets: Asset[] = rawAssets.map((raw) => ({
+    ...raw,
+    currentPrice: 0,
+    change24h: 0,
+    totalValue: 0,
+    totalCost: raw.quantity * raw.buyPrice,
+    pnl: -raw.quantity * raw.buyPrice,
+    pnlPercent: -100,
+  }));
+
+  const portfolioData = buildPortfolioData(assets);
+  return { ...portfolioData, rawAssets };
+}
+
+export async function getPortfolioData(): Promise<PortfolioData> {
+  const rawAssets = await fetchAssetsFromNotion();
+
+  const cryptoIds = rawAssets.filter((a) => a.category === 'crypto' && a.symbol).map((a) => a.symbol.toLowerCase());
+  const stockTickers = rawAssets.filter((a) => a.category === 'stock' && a.symbol).map((a) => a.symbol.toUpperCase());
+  const hasGold = rawAssets.some((a) => a.category === 'gold');
+  const hasUsd = rawAssets.some((a) => a.category === 'usd');
+
+  const prices = await fetchAllPrices(cryptoIds, stockTickers, hasGold, hasUsd);
+  const assets: Asset[] = rawAssets.map((raw) => resolvePrice(raw, prices));
+
+  const portfolioData = buildPortfolioData(assets);
+  return { ...portfolioData, rawAssets };
 }

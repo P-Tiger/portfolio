@@ -1,7 +1,7 @@
 'use client';
 
-import { CategoryBreakdown, CATEGORY_COLORS } from '@/lib/types';
 import { formatVND } from '@/lib/format';
+import { CATEGORY_COLORS, CategoryBreakdown } from '@/lib/types';
 import { AnimatedNumber } from './AnimatedNumber';
 
 export function CategoryCards({ data }: { data: CategoryBreakdown[] }) {

@@ -44,6 +44,7 @@ export interface PortfolioData {
   totalPnlPercent: number;
   categoryBreakdown: CategoryBreakdown[];
   lastUpdated: string;
+  rawAssets?: AssetRaw[]; // For client-side price recalculation
 }
 
 export type PriceInfo = {
@@ -55,10 +56,10 @@ export type PriceMap = Record<string, PriceInfo>;
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   crypto: 'Crypto',
-  gold: 'Vàng',
+  gold: 'Gold',
   usd: 'USD',
-  stock: 'Cổ phiếu',
-  cash: 'Tiền mặt',
+  stock: 'Stock',
+  cash: 'Cash',
 };
 
 export const CATEGORY_COLORS: Record<Category, string> = {

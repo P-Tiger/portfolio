@@ -120,9 +120,12 @@ export function PerformanceChart({
               Đang tải...
             </div>
           </div>
-        ) : !hasData ? (
+        ) : !hasData && data.length === 0 ? (
           <div className="h-full flex items-center justify-center">
-            <p className="text-zinc-500 text-sm">Chưa đủ dữ liệu lịch sử</p>
+            <div className="text-center">
+              <p className="text-zinc-400 text-sm mb-1">Không có dữ liệu lịch sử</p>
+              <p className="text-zinc-500 text-xs">Danh mục này không chứa Crypto, Vàng, USD hoặc Cổ phiếu</p>
+            </div>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
