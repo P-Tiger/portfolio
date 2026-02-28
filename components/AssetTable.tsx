@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Asset, TransactionRaw } from '@/lib/types';
 import { formatVNDFull, formatQuantity } from '@/lib/format';
 import { getAssetIcon } from '@/lib/icons';
@@ -24,8 +24,8 @@ export function AssetTable({ assets, showCategory = true, transactions = [] }: {
     }
   };
 
-  const getSortedAssets = () => {
-    const sorted = [...assets].sort((a, b) => {
+  const sortedAssets = useMemo(() => {
+    return [...assets].sort((a, b) => {
       let aVal: any = a[sortKey];
       let bVal: any = b[sortKey];
 
@@ -42,16 +42,12 @@ export function AssetTable({ assets, showCategory = true, transactions = [] }: {
 
       return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
     });
-
-    return sorted;
-  };
+  }, [assets, sortKey, sortDirection]);
 
   const SortIndicator = ({ active }: { active: boolean }) => {
     if (!active) return <span className="text-zinc-600 ml-1">⇅</span>;
     return <span className="text-emerald-400 ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
   };
-
-  const sortedAssets = getSortedAssets();
   if (assets.length === 0) {
     return (
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">

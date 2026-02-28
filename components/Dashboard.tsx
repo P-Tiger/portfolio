@@ -1,7 +1,7 @@
 'use client';
 
 import { Category, PortfolioData, TransactionRaw } from '@/lib/types';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CategoryTab } from './CategoryTab';
 import { OverviewTab } from './OverviewTab';
 import { TabKey, TabNavigation } from './TabNavigation';
@@ -15,12 +15,18 @@ interface Props {
 export function Dashboard({ data, refreshIntervalSec, onRefreshIntervalChange }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
-  const categoryCounts: Record<string, number> = {};
-  for (const bd of data.categoryBreakdown) {
-    categoryCounts[bd.category] = bd.count;
-  }
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const bd of data.categoryBreakdown) {
+      counts[bd.category] = bd.count;
+    }
+    return counts;
+  }, [data.categoryBreakdown]);
 
-  const filteredAssets = activeTab === 'overview' ? data.assets : data.assets.filter((a) => a.category === activeTab);
+  const filteredAssets = useMemo(
+    () => activeTab === 'overview' ? data.assets : data.assets.filter((a) => a.category === activeTab),
+    [activeTab, data.assets]
+  );
   const transactions = data.transactions || [];
 
   return (

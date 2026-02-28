@@ -1,60 +1,5 @@
 import { PriceMap } from './types';
 
-// Mapping CoinGecko ID -> major exchange symbol ticker
-const CRYPTO_ID_TO_BINANCE_TICKER: Record<string, string> = {
-  bitcoin: 'BTC',
-  ethereum: 'ETH',
-  solana: 'SOL',
-  binancecoin: 'BNB',
-  cardano: 'ADA',
-  ripple: 'XRP',
-  dogecoin: 'DOGE',
-  polkadot: 'DOT',
-  avalanche: 'AVAX',
-  chainlink: 'LINK',
-  tron: 'TRX',
-  litecoin: 'LTC',
-  'shiba-inu': 'SHIB',
-  uniswap: 'UNI',
-  toncoin: 'TON',
-};
-
-// Mapping CoinGecko ID -> currency ticker (used by historical fallback API)
-const CRYPTO_ID_TO_TICKER: Record<string, string> = {
-  bitcoin: 'btc',
-  ethereum: 'eth',
-  solana: 'sol',
-  binancecoin: 'bnb',
-  cardano: 'ada',
-  ripple: 'xrp',
-  dogecoin: 'doge',
-  polkadot: 'dot',
-  avalanche: 'avax',
-  chainlink: 'link',
-  tron: 'trx',
-  litecoin: 'ltc',
-  'shiba-inu': 'shib',
-  uniswap: 'uni',
-  toncoin: 'ton',
-};
-
-function resolveCryptoTicker(id: string): string | null {
-  const lower = id.toLowerCase();
-
-  const mapped = CRYPTO_ID_TO_TICKER[lower];
-  if (mapped) return mapped;
-
-  if (lower.endsWith('-usdt')) {
-    return lower.replace(/-usdt$/, '');
-  }
-
-  if (lower.endsWith('usdt')) {
-    return lower.replace(/usdt$/, '');
-  }
-
-  return null;
-}
-
 // ============ USD RATE CACHE (5-min TTL) ============
 let usdRateCache: { rate: number; timestamp: number } | null = null;
 const USD_RATE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -62,6 +7,10 @@ const USD_RATE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 type OkxSpotTicker = { instId: string; last: string; open24h: string };
 let okxSpotTickersCache: { data: OkxSpotTicker[]; timestamp: number } | null = null;
 const OKX_SPOT_TICKERS_CACHE_TTL = 30 * 1000; // 30 seconds
+
+// ============ SJC GOLD CACHE (1-hour TTL) ============
+let sjcGoldCache: { pricePerChi: number; timestamp: number } | null = null;
+const SJC_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
 async function getCachedUsdRate(): Promise<number> {
   const now = Date.now();
@@ -132,18 +81,12 @@ async function fetchCryptoOkx(ids: string[]): Promise<PriceMap> {
       const upper = id.toUpperCase();
       let ticker = '';
 
-      if (upper.endsWith('USDT')) {
-        ticker = upper.replace(/USDT$/, '');
-      } else {
-        const ticker = CRYPTO_ID_TO_BINANCE_TICKER[id.toLowerCase()];
-        if (!ticker) {
-          console.warn(`[prices] No symbol mapping for "${id}"`);
-          continue;
-        }
-        instIdToId[`${ticker}-USDT`] = id;
+      if (!upper.endsWith('USDT')) {
+        console.warn(`[prices] Skipping "${id}" – expected ticker ending with USDT`);
         continue;
       }
 
+      ticker = upper.replace(/USDT$/, '');
       instIdToId[`${ticker}-USDT`] = id;
     }
 
@@ -226,51 +169,33 @@ export async function fetchStockPrices(tickers: string[]): Promise<PriceMap> {
   }
 }
 
-// ============ GOLD (SJC Vietnam / fallback XAU international) ============
-const TROY_OZ_TO_CHI = 8.294;
+// ============ GOLD (SJC Vietnam) ============
+export async function fetchGoldPricePerChi(): Promise<PriceMap> {
+  const now = Date.now();
+  if (sjcGoldCache && now - sjcGoldCache.timestamp < SJC_CACHE_TTL) {
+    console.log(`[prices] Using cached SJC Gold: ${Math.round(sjcGoldCache.pricePerChi)} VND/chỉ`);
+    return { __gold__: { vnd: sjcGoldCache.pricePerChi, change24h: 0 } };
+  }
 
-async function fetchGoldSJC(): Promise<{ pricePerChi: number } | null> {
   try {
     const url = 'https://sjc.com.vn/GoldPrice/Services/PriceService.ashx';
     const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) return null;
+    if (!res.ok) throw new Error(`SJC HTTP ${res.status}`);
     const json = await res.json();
-    if (!json.success || !Array.isArray(json.data)) return null;
-    // Find SJC bar price (1L, 10L, 1KG) in Ho Chi Minh - BuyValue is per lượng
+    if (!json.success || !Array.isArray(json.data)) throw new Error('SJC invalid response');
+    // Find SJC bar price (1L) in Ho Chi Minh - BuyValue is per lượng
     const sjc = json.data.find(
       (item: { TypeName: string; BranchName: string }) =>
         item.TypeName?.includes('SJC 1L') && item.BranchName === 'Hồ Chí Minh',
     );
     const buyPerLuong = (sjc as { BuyValue?: number })?.BuyValue;
-    if (!buyPerLuong || buyPerLuong <= 0) return null;
-    return { pricePerChi: buyPerLuong / 10 };
-  } catch {
-    return null;
-  }
-}
-
-export async function fetchGoldPricePerChi(): Promise<PriceMap> {
-  // Try SJC official API first (accurate domestic price)
-  const sjc = await fetchGoldSJC();
-  if (sjc) {
-    console.log(`[prices] SJC Gold OK: ${Math.round(sjc.pricePerChi)} VND/chỉ`);
-    return { __gold__: { vnd: sjc.pricePerChi, change24h: 0 } };
-  }
-
-  // Fallback to international XAU price
-  console.log('[prices] SJC failed, trying XAU international fallback...');
-  try {
-    const url = 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/xau.json';
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`Gold API ${res.status}`);
-    const data = await res.json();
-    const pricePerOz = data.xau?.vnd ?? 0;
-    if (pricePerOz === 0) throw new Error('Gold price is 0');
-    const pricePerChi = pricePerOz / TROY_OZ_TO_CHI;
-    console.log(`[prices] Gold XAU fallback: ${Math.round(pricePerChi)} VND/chỉ`);
+    if (!buyPerLuong || buyPerLuong <= 0) throw new Error('SJC price not found');
+    const pricePerChi = buyPerLuong / 10;
+    sjcGoldCache = { pricePerChi, timestamp: now };
+    console.log(`[prices] SJC Gold OK: ${Math.round(pricePerChi)} VND/chỉ`);
     return { __gold__: { vnd: pricePerChi, change24h: 0 } };
   } catch (e) {
-    console.error('[prices] Gold error:', (e as Error).message);
+    console.error('[prices] SJC error:', (e as Error).message);
     return {};
   }
 }
@@ -289,216 +214,6 @@ export async function fetchUsdRate(): Promise<PriceMap> {
   } catch (e) {
     console.error('[prices] USD error:', (e as Error).message);
     return {};
-  }
-}
-
-// ============ CRYPTO HISTORICAL (CoinGecko / fallback) ============
-export interface HistoryPoint {
-  timestamp: number;
-  price: number;
-}
-
-export async function fetchCryptoHistory(id: string, days: number = 30): Promise<HistoryPoint[]> {
-  // Try CoinGecko market_chart first (fine-grained: 5-min to daily)
-  try {
-    const url = `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=vnd&days=${days}`;
-    const res = await fetch(url, {
-      headers: { Accept: 'application/json', 'User-Agent': 'PortfolioDashboard/1.0' },
-      cache: 'no-store',
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.prices?.length) {
-        console.log(`[prices] CoinGecko history OK: ${id} (${data.prices.length} points, ${days}d)`);
-        const points = data.prices.map((p: [number, number]) => ({
-          timestamp: p[0],
-          price: p[1],
-        }));
-        return points;
-      }
-    }
-  } catch (e) {
-    console.warn(`[prices] CoinGecko history failed for ${id}:`, (e as Error).message);
-  }
-
-  // Fallback: fawazahmed0 daily data (same approach as gold/usd history)
-  const ticker = resolveCryptoTicker(id);
-  if (!ticker) {
-    console.warn(`[prices] No ticker mapping for "${id}", cannot fetch history fallback`);
-    return [];
-  }
-
-  console.log(`[prices] Trying fawazahmed0 history fallback for ${id} (${ticker})...`);
-  const points: HistoryPoint[] = [];
-  const now = new Date();
-  const sampleCount = Math.min(days, 10);
-  const interval = Math.max(1, Math.floor(days / sampleCount));
-  const dates: string[] = [];
-
-  for (let i = days; i >= 0; i -= interval) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    dates.push(d.toISOString().split('T')[0]);
-  }
-
-  const results = await Promise.allSettled(
-    dates.map(async (date) => {
-      const apiUrl = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${date}/v1/currencies/${ticker}.json`;
-      const res = await fetch(apiUrl, { cache: 'no-store' });
-      if (!res.ok) return null;
-      const data = await res.json();
-      const vnd = data?.[ticker]?.vnd;
-      if (!vnd || vnd === 0) return null;
-      return { timestamp: new Date(date).getTime(), price: vnd };
-    }),
-  );
-
-  for (const r of results) {
-    if (r.status === 'fulfilled' && r.value) {
-      points.push(r.value);
-    }
-  }
-
-  const sorted = points.sort((a, b) => a.timestamp - b.timestamp);
-  console.log(`[prices] Fallback history for ${id}: ${sorted.length} data points`);
-  return sorted;
-}
-
-// ============ GOLD HISTORICAL (fawazahmed0 dated versions) ============
-export async function fetchGoldHistory(days: number = 30): Promise<HistoryPoint[]> {
-  const points: HistoryPoint[] = [];
-  const now = new Date();
-  const sampleCount = Math.min(days, 10);
-  const interval = Math.max(1, Math.floor(days / sampleCount));
-  const dates: string[] = [];
-
-  for (let i = days; i >= 0; i -= interval) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    dates.push(d.toISOString().split('T')[0]);
-  }
-
-  const results = await Promise.allSettled(
-    dates.map(async (date) => {
-      const url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${date}/v1/currencies/xau.json`;
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) return null;
-      const data = await res.json();
-      const vndPerOz = data?.xau?.vnd;
-      if (!vndPerOz || vndPerOz === 0) return null;
-      const vndPerChi = Math.abs(vndPerOz) / TROY_OZ_TO_CHI;
-      return { timestamp: new Date(date).getTime(), price: vndPerChi };
-    }),
-  );
-
-  for (const r of results) {
-    if (r.status === 'fulfilled' && r.value) {
-      points.push(r.value);
-    }
-  }
-
-  console.log(`[prices] Gold history: ${points.length} data points`);
-  const sorted = points.sort((a, b) => a.timestamp - b.timestamp);
-  return sorted;
-}
-
-// ============ USD HISTORICAL (fawazahmed0 dated versions) ============
-export async function fetchUsdHistory(days: number = 30): Promise<HistoryPoint[]> {
-  const points: HistoryPoint[] = [];
-  const now = new Date();
-  const sampleCount = Math.min(days, 10);
-  const interval = Math.max(1, Math.floor(days / sampleCount));
-  const dates: string[] = [];
-
-  for (let i = days; i >= 0; i -= interval) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    dates.push(d.toISOString().split('T')[0]);
-  }
-
-  const results = await Promise.allSettled(
-    dates.map(async (date) => {
-      const url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${date}/v1/currencies/usd.json`;
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) return null;
-      const data = await res.json();
-      const rate = data?.usd?.vnd;
-      if (!rate || rate === 0) return null;
-      return { timestamp: new Date(date).getTime(), price: rate };
-    }),
-  );
-
-  for (const r of results) {
-    if (r.status === 'fulfilled' && r.value) {
-      points.push(r.value);
-    }
-  }
-
-  console.log(`[prices] USD history: ${points.length} data points`);
-  const sorted = points.sort((a, b) => a.timestamp - b.timestamp);
-  return sorted;
-}
-
-// ============ STOCK HISTORICAL (Yahoo Finance API) ============
-export async function fetchStockHistory(ticker: string, days: number = 30): Promise<HistoryPoint[]> {
-  try {
-    // Yahoo Finance API endpoint for historical data
-    // Format: https://query1.finance.yahoo.com/v7/finance/download/TICKER?interval=1d&range=30d
-    const period2 = Math.floor(Date.now() / 1000);
-    const period1 = period2 - days * 24 * 60 * 60;
-
-    // Vietnamese stocks: add .HM for HOSE or .HA for HNX if needed
-    let symbol = ticker.toUpperCase();
-    if (!symbol.includes('.')) {
-      symbol = `${symbol}.HM`; // Default to HOSE exchange
-    }
-
-    const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=price`;
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      cache: 'no-store',
-    });
-
-    if (!res.ok) {
-      console.log(`[prices] Yahoo Finance history unavailable for ${ticker}, returning empty`);
-      return [];
-    }
-
-    const data = await res.json();
-    const currentPrice = data.quoteSummary?.result?.[0]?.price?.regularMarketPrice?.raw;
-
-    if (!currentPrice || currentPrice <= 0) {
-      return [];
-    }
-
-    // Generate synthetic history using current price as reference
-    // Simulates ~5-10% daily volatility
-    const points: HistoryPoint[] = [];
-    const now = new Date();
-    let price = currentPrice * 0.95; // Start ~5% lower
-
-    for (let i = days; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-
-      // Random walk with slight upward drift
-      const change = (Math.random() - 0.45) * (currentPrice * 0.05);
-      price = Math.max(price + change, currentPrice * 0.85);
-
-      points.push({
-        timestamp: d.getTime(),
-        price: Math.round(price),
-      });
-    }
-
-    // Ensure last point is current price
-    points[points.length - 1].price = currentPrice;
-
-    console.log(`[prices] Stock history for ${ticker}: ${points.length} data points`);
-    return points;
-  } catch (e) {
-    console.warn(`[prices] Stock history fetch failed for ${ticker}:`, (e as Error).message);
-    return [];
   }
 }
 

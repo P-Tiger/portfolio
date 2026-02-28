@@ -10,7 +10,7 @@ import {
   PriceMap,
   TransactionRaw,
 } from '@/lib/types';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, startTransition } from 'react';
 import { Dashboard } from './Dashboard';
 
 function resolvePrice(raw: AssetRaw, prices: PriceMap) {
@@ -231,9 +231,13 @@ export function ClientDashboard() {
         const prices = loadPrices();
         if (Object.keys(prices).length > 0) {
           const built = buildPortfolioData(raw, prices);
-          setPortfolioData({ ...built, transactions: transactionsRef.current });
+          startTransition(() => {
+            setPortfolioData({ ...built, transactions: transactionsRef.current });
+          });
         } else {
-          setPortfolioData({ ...notionData, transactions: transactionsRef.current });
+          startTransition(() => {
+            setPortfolioData({ ...notionData, transactions: transactionsRef.current });
+          });
         }
       } catch (e) {
         console.error('[dashboard] Notion fetch error:', (e as Error).message);
@@ -248,7 +252,9 @@ export function ClientDashboard() {
         const prices: PriceMap = await res.json();
         savePrices(prices);
         const built = buildPortfolioData(rawAssetsRef.current, prices);
-        setPortfolioData({ ...built, transactions: transactionsRef.current });
+        startTransition(() => {
+          setPortfolioData({ ...built, transactions: transactionsRef.current });
+        });
       } catch (e) {
         console.error('[dashboard] Prices fetch error:', (e as Error).message);
       }
