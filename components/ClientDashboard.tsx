@@ -126,17 +126,23 @@ function savePricesToStorage(prices: PriceMap) {
 }
 
 export function ClientDashboard({ data, rawAssets }: ClientDashboardProps) {
-  const [portfolioData, setPortfolioData] = useState<PortfolioData>(() => {
-    // Load prices from localStorage and merge with initial data
+  const [portfolioData, setPortfolioData] = useState<PortfolioData>(data);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    // Load prices from localStorage after hydration
     const storedPrices = loadPricesFromStorage();
     if (Object.keys(storedPrices).length > 0) {
       const dataWithStoredPrices = recalculatePortfolioData(rawAssets, storedPrices);
-      return dataWithStoredPrices;
+      setPortfolioData(dataWithStoredPrices);
     }
-    return data;
-  });
+    setHydrated(true);
+  }, [rawAssets]);
 
   useEffect(() => {
+    // Only start fetching after hydration is complete
+    if (!hydrated) return;
+
     // Fetch prices immediately and silently (no loading state)
     const fetchPrices = async () => {
       try {
@@ -167,7 +173,7 @@ export function ClientDashboard({ data, rawAssets }: ClientDashboardProps) {
     const interval = setInterval(fetchPrices, 5000);
 
     return () => clearInterval(interval);
-  }, [rawAssets]);
+  }, [hydrated, rawAssets]);
 
   // Show dashboard - all Notion data visible immediately
   return <Dashboard data={portfolioData} />;
