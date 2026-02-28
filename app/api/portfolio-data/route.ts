@@ -1,5 +1,7 @@
-import { NextResponse } from 'next/server';
 import { getPortfolioDataWithoutPrices } from '@/lib/notion';
+import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {

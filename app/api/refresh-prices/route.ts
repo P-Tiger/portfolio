@@ -1,5 +1,5 @@
 import { getCachedAssets } from '@/lib/notion';
-import { fetchAllPrices } from '@/lib/prices';
+import { fetchAllPricesCached } from '@/lib/prices';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
@@ -15,7 +15,7 @@ export async function GET() {
     const stockTickers = assets.filter((a) => a.category === 'stock').map((a) => a.symbol.toUpperCase());
 
     // Fetch fresh prices
-    const prices = await fetchAllPrices(cryptoIds, stockTickers, hasGold, hasUsd);
+    const prices = await fetchAllPricesCached(cryptoIds, stockTickers, hasGold, hasUsd);
 
     return NextResponse.json(prices);
   } catch (e) {

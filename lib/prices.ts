@@ -38,8 +38,24 @@ const CRYPTO_ID_TO_TICKER: Record<string, string> = {
   toncoin: 'ton',
 };
 
-// ============ CACHING ============
-// Notion cache only - keep Notion data cached for fast page loads
+// ============ USD RATE CACHE (5-min TTL) ============
+let usdRateCache: { rate: number; timestamp: number } | null = null;
+const USD_RATE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function getCachedUsdRate(): Promise<number> {
+  const now = Date.now();
+  if (usdRateCache && now - usdRateCache.timestamp < USD_RATE_CACHE_TTL) {
+    console.log('[prices] Using cached USD rate:', usdRateCache.rate);
+    return usdRateCache.rate;
+  }
+
+  const result = await fetchUsdRate();
+  const rate = result.__usd__?.vnd ?? 0;
+  if (rate > 0) {
+    usdRateCache = { rate, timestamp: now };
+  }
+  return rate;
+}
 
 // ============ CRYPTO ============
 export async function fetchCryptoPrices(ids: string[]): Promise<PriceMap> {
@@ -56,61 +72,60 @@ export async function fetchCryptoPrices(ids: string[]): Promise<PriceMap> {
 
 async function fetchCryptoBinance(ids: string[]): Promise<PriceMap> {
   try {
-    // Fetch USD exchange rate first
-    const usdRate = await fetchUsdRate();
-    const usdToVnd = usdRate.__usd__?.vnd ?? 0;
+    // Use cached USD rate (5-min TTL) instead of blocking fetch every time
+    const usdToVnd = await getCachedUsdRate();
     if (usdToVnd === 0) {
-      console.error('[prices] USD rate unavailable, cannot convert BTC prices');
+      console.error('[prices] USD rate unavailable, cannot convert crypto prices');
       return {};
     }
 
-    // Fetch all crypto prices in parallel
-    const map: PriceMap = {};
-    const promises = ids.map(async (id) => {
-      // Handle both formats: 'btcusdt' (from Notion) or 'bitcoin' (CoinGecko ID)
+    // Build symbol-to-id mapping: "BTCUSDT" -> "btcusdt" (original id)
+    const symbolToId: Record<string, string> = {};
+    for (const id of ids) {
       let symbol = id.toUpperCase();
-
-      // If it's not already a trading pair (doesn't end with USDT), map it from CoinGecko ID
       if (!symbol.endsWith('USDT')) {
         const ticker = CRYPTO_ID_TO_BINANCE_TICKER[id.toLowerCase()];
         if (!ticker) {
           console.warn(`[prices] No Binance ticker for "${id}"`);
-          return;
+          continue;
         }
         symbol = `${ticker}USDT`;
       }
+      symbolToId[symbol] = id;
+    }
 
-      try {
-        // Use 24hr ticker endpoint to get price + 24h change
-        const url = `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`;
-        const res = await fetch(url, {
-          headers: { 'Accept': 'application/json' },
-          cache: 'no-store',
-        });
+    const symbols = Object.keys(symbolToId);
+    if (symbols.length === 0) return {};
 
-        if (!res.ok) {
-          console.warn(`[prices] Binance ${symbol} HTTP ${res.status}`);
-          return;
-        }
-
-        const data = await res.json();
-        const priceUsd = parseFloat(data.lastPrice);
-        const change24h = parseFloat(data.priceChangePercent);
-
-        if (priceUsd > 0) {
-          map[id] = {
-            vnd: priceUsd * usdToVnd,
-            change24h: change24h || 0,
-          };
-        }
-      } catch (e) {
-        console.error(`[prices] Binance fetch failed for ${id}:`, (e as Error).message);
-      }
+    // Single batch request instead of N individual requests
+    const symbolsParam = JSON.stringify(symbols);
+    const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbolsParam)}`;
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
     });
 
-    await Promise.all(promises);
+    if (!res.ok) {
+      console.warn(`[prices] Binance batch HTTP ${res.status}`);
+      return {};
+    }
+
+    const data: Array<{ symbol: string; lastPrice: string; priceChangePercent: string }> = await res.json();
+    const map: PriceMap = {};
+
+    for (const item of data) {
+      const id = symbolToId[item.symbol];
+      if (!id) continue;
+      const priceUsd = parseFloat(item.lastPrice);
+      const change24h = parseFloat(item.priceChangePercent);
+      if (priceUsd > 0) {
+        map[id] = { vnd: priceUsd * usdToVnd, change24h: change24h || 0 };
+        console.log(`[prices] Binance OK: ${id} = ${map[id].vnd} VND`);
+      }
+    }
+
     if (Object.keys(map).length > 0) {
-      console.log(`[prices] Binance OK: ${Object.keys(map).join(', ')}`);
+      console.log(`[prices] Binance batch OK: ${Object.keys(map).join(', ')}`);
     }
     return map;
   } catch (e) {
@@ -170,8 +185,8 @@ export async function fetchStockPrices(tickers: string[]): Promise<PriceMap> {
       for (const item of data) {
         const ticker = item.a?.toUpperCase();
         if (tickerSet.has(ticker) && !map[ticker]) {
-          const price = (item.l || item.b || 0) * 1000;  // l = last matched (current) price, fallback to b (reference)
-          const ref = (item.b || 0) * 1000;               // b = reference price
+          const price = (item.l || item.b || 0) * 1000; // l = last matched (current) price, fallback to b (reference)
+          const ref = (item.b || 0) * 1000; // b = reference price
           const change = ref > 0 ? ((price - ref) / ref) * 100 : 0;
           map[ticker] = { vnd: price, change24h: change };
         }
@@ -472,11 +487,41 @@ export async function fetchAllPrices(
   promises.push(fetchCryptoPrices(cryptoIds));
   promises.push(fetchStockPrices(stockTickers));
   if (hasGold) promises.push(fetchGoldPricePerChi());
-  if (hasUsd) promises.push(fetchUsdRate());
 
   const results = await Promise.all(promises);
   const merged = Object.assign({}, ...results);
-  console.log(`[prices] All prices fetched: ${Object.keys(merged).length} items`);
 
+  // Get USD rate from cache (already populated by fetchCryptoBinance) instead of duplicate fetch
+  if (hasUsd) {
+    const rate = await getCachedUsdRate();
+    if (rate > 0) {
+      merged.__usd__ = { vnd: rate, change24h: 0 };
+    }
+  }
+
+  console.log(`[prices] All prices fetched: ${Object.keys(merged).length} items`);
   return merged;
+}
+
+// ============ SERVER-SIDE PRICE CACHE (30s TTL) ============
+let priceCache: { data: PriceMap; timestamp: number; key: string } | null = null;
+const PRICE_CACHE_TTL = 30 * 1000; // 30 seconds
+
+export async function fetchAllPricesCached(
+  cryptoIds: string[],
+  stockTickers: string[],
+  hasGold: boolean,
+  hasUsd: boolean,
+): Promise<PriceMap> {
+  const now = Date.now();
+  const cacheKey = `${cryptoIds.sort().join(',')}_${stockTickers.sort().join(',')}_${hasGold}_${hasUsd}`;
+
+  if (priceCache && priceCache.key === cacheKey && now - priceCache.timestamp < PRICE_CACHE_TTL) {
+    console.log('[prices] Serving cached prices (age:', Math.round((now - priceCache.timestamp) / 1000), 's)');
+    return priceCache.data;
+  }
+
+  const prices = await fetchAllPrices(cryptoIds, stockTickers, hasGold, hasUsd);
+  priceCache = { data: prices, timestamp: now, key: cacheKey };
+  return prices;
 }

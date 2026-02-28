@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
+import { Dashboard } from './Dashboard';
 import {
   AssetRaw,
   Category,
@@ -9,56 +11,30 @@ import {
   PortfolioData,
   PriceMap,
 } from '@/lib/types';
-import { useEffect, useState } from 'react';
-import { Dashboard } from './Dashboard';
 
-interface ClientDashboardProps {
-  data: PortfolioData;
-  rawAssets: AssetRaw[];
-}
-
-function resolvePrice(
-  raw: AssetRaw,
-  prices: PriceMap,
-): {
-  currentPrice: number;
-  change24h: number;
-} {
+function resolvePrice(raw: AssetRaw, prices: PriceMap) {
   let currentPrice = 0;
   let change24h = 0;
 
   switch (raw.category) {
     case 'crypto': {
       const p = prices[raw.symbol.toLowerCase()];
-      if (p) {
-        currentPrice = p.vnd;
-        change24h = p.change24h;
-      }
+      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
       break;
     }
     case 'stock': {
-      const key = raw.symbol.toUpperCase();
-      const p = prices[key];
-      if (p) {
-        currentPrice = p.vnd;
-        change24h = p.change24h;
-      }
+      const p = prices[raw.symbol.toUpperCase()];
+      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
       break;
     }
     case 'gold': {
       const p = prices['__gold__'];
-      if (p) {
-        currentPrice = p.vnd;
-        change24h = p.change24h;
-      }
+      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
       break;
     }
     case 'usd': {
       const p = prices['__usd__'];
-      if (p) {
-        currentPrice = p.vnd;
-        change24h = p.change24h;
-      }
+      if (p) { currentPrice = p.vnd; change24h = p.change24h; }
       break;
     }
     case 'cash': {
@@ -70,37 +46,28 @@ function resolvePrice(
   return { currentPrice, change24h };
 }
 
-function recalculatePortfolioData(rawAssets: AssetRaw[], prices: PriceMap): PortfolioData {
+function buildPortfolioData(rawAssets: AssetRaw[], prices: PriceMap): PortfolioData {
   const assets = rawAssets.map((raw) => {
     const { currentPrice, change24h } = resolvePrice(raw, prices);
     const totalValue = raw.quantity * currentPrice;
     const totalCost = raw.quantity * raw.buyPrice;
     const pnl = totalValue - totalCost;
     const pnlPercent = totalCost > 0 ? (pnl / totalCost) * 100 : 0;
-
-    return {
-      ...raw,
-      currentPrice,
-      change24h,
-      totalValue,
-      totalCost,
-      pnl,
-      pnlPercent,
-    };
+    return { ...raw, currentPrice, change24h, totalValue, totalCost, pnl, pnlPercent };
   });
 
-  const totalValue = assets.reduce((sum, a) => sum + a.totalValue, 0);
-  const totalCost = assets.reduce((sum, a) => sum + a.totalCost, 0);
+  const totalValue = assets.reduce((s, a) => s + a.totalValue, 0);
+  const totalCost = assets.reduce((s, a) => s + a.totalCost, 0);
   const totalPnl = totalValue - totalCost;
   const totalPnlPercent = totalCost > 0 ? (totalPnl / totalCost) * 100 : 0;
 
   const catMap = new Map<Category, { value: number; cost: number; count: number }>();
-  for (const asset of assets) {
-    const existing = catMap.get(asset.category) ?? { value: 0, cost: 0, count: 0 };
-    existing.value += asset.totalValue;
-    existing.cost += asset.totalCost;
-    existing.count += 1;
-    catMap.set(asset.category, existing);
+  for (const a of assets) {
+    const e = catMap.get(a.category) ?? { value: 0, cost: 0, count: 0 };
+    e.value += a.totalValue;
+    e.cost += a.totalCost;
+    e.count += 1;
+    catMap.set(a.category, e);
   }
 
   const categoryBreakdown: CategoryBreakdown[] = Array.from(catMap.entries())
@@ -109,9 +76,7 @@ function recalculatePortfolioData(rawAssets: AssetRaw[], prices: PriceMap): Port
       return {
         category: cat,
         name: CATEGORY_LABELS[cat] || cat,
-        value: d.value,
-        cost: d.cost,
-        pnl,
+        value: d.value, cost: d.cost, pnl,
         pnlPercent: d.cost > 0 ? (pnl / d.cost) * 100 : 0,
         percent: totalValue > 0 ? (d.value / totalValue) * 100 : 0,
         color: CATEGORY_COLORS[cat] || '#6b7280',
@@ -122,115 +87,103 @@ function recalculatePortfolioData(rawAssets: AssetRaw[], prices: PriceMap): Port
 
   return {
     assets: assets.sort((a, b) => b.totalValue - a.totalValue),
-    totalValue,
-    totalCost,
-    totalPnl,
-    totalPnlPercent,
-    categoryBreakdown,
+    totalValue, totalCost, totalPnl, totalPnlPercent, categoryBreakdown,
     lastUpdated: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
   };
 }
 
-function loadPricesFromStorage(): PriceMap {
+function loadPrices(): PriceMap {
   try {
-    const stored = localStorage.getItem('portfolio-prices');
-    return stored ? JSON.parse(stored) : {};
-  } catch {
-    return {};
-  }
+    const s = localStorage.getItem('portfolio-prices');
+    return s ? JSON.parse(s) : {};
+  } catch { return {}; }
 }
 
-function savePricesToStorage(prices: PriceMap) {
-  try {
-    localStorage.setItem('portfolio-prices', JSON.stringify(prices));
-  } catch {
-    // Silently fail if localStorage unavailable
-  }
+function savePrices(prices: PriceMap) {
+  try { localStorage.setItem('portfolio-prices', JSON.stringify(prices)); }
+  catch { /* ignore */ }
 }
 
-export function ClientDashboard({ data, rawAssets }: ClientDashboardProps) {
-  const [portfolioData, setPortfolioData] = useState<PortfolioData>(data);
-  const [hydrated, setHydrated] = useState(false);
+function loadRawAssets(): AssetRaw[] {
+  try {
+    const s = localStorage.getItem('portfolio-raw-assets');
+    return s ? JSON.parse(s) : [];
+  } catch { return []; }
+}
 
-  useEffect(() => {
-    // Load prices from localStorage after hydration
-    const storedPrices = loadPricesFromStorage();
-    if (Object.keys(storedPrices).length > 0 && rawAssets.length === 0) {
-      // Only apply stored prices on first load when we have empty rawAssets
-      const dataWithStoredPrices = recalculatePortfolioData(rawAssets, storedPrices);
-      setPortfolioData(dataWithStoredPrices);
+function saveRawAssets(assets: AssetRaw[]) {
+  try { localStorage.setItem('portfolio-raw-assets', JSON.stringify(assets)); }
+  catch { /* ignore */ }
+}
+
+const emptyData: PortfolioData = {
+  assets: [],
+  totalValue: 0,
+  totalCost: 0,
+  totalPnl: 0,
+  totalPnlPercent: 0,
+  categoryBreakdown: [],
+  lastUpdated: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+};
+
+export function ClientDashboard() {
+  // SSR disabled → localStorage available in initializer → no flash of 0s
+  const [portfolioData, setPortfolioData] = useState<PortfolioData>(() => {
+    const storedAssets = loadRawAssets();
+    const storedPrices = loadPrices();
+    if (storedAssets.length > 0 && Object.keys(storedPrices).length > 0) {
+      return buildPortfolioData(storedAssets, storedPrices);
     }
-    setHydrated(true);
-  }, []);
+    return emptyData;
+  });
+  const rawAssetsRef = useRef<AssetRaw[]>(loadRawAssets());
 
   useEffect(() => {
-    // Only start fetching after hydration is complete
-    if (!hydrated) return;
-
-    const fetchNotionData = async () => {
+    const fetchNotion = async () => {
       try {
-        console.log('[dashboard] Fetching Notion data...');
-        const response = await fetch('/api/portfolio-data');
-        if (!response.ok) {
-          console.error('[dashboard] Failed to fetch Notion data:', response.statusText);
-          return;
-        }
-        const notionData: PortfolioData = await response.json();
-        console.log('[dashboard] Notion data received');
+        const res = await fetch('/api/portfolio-data');
+        if (!res.ok) return;
+        const notionData: PortfolioData & { rawAssets?: AssetRaw[] } = await res.json();
+        const raw = notionData.rawAssets || [];
+        rawAssetsRef.current = raw;
+        saveRawAssets(raw);
 
-        // Update with Notion data + stored prices if available
-        const storedPrices = loadPricesFromStorage();
-        if (Object.keys(storedPrices).length > 0) {
-          const dataWithStoredPrices = recalculatePortfolioData(notionData.rawAssets || [], storedPrices);
-          setPortfolioData(dataWithStoredPrices);
+        // Rebuild with current prices + fresh assets
+        const prices = loadPrices();
+        if (Object.keys(prices).length > 0) {
+          setPortfolioData(buildPortfolioData(raw, prices));
         } else {
           setPortfolioData(notionData);
         }
       } catch (e) {
-        console.error('[dashboard] Error fetching Notion data:', (e as Error).message);
+        console.error('[dashboard] Notion fetch error:', (e as Error).message);
       }
     };
-
-    // Fetch Notion data immediately
-    fetchNotionData();
-  }, [hydrated]);
-
-  // Fetch prices separately every 5 seconds
-  useEffect(() => {
-    if (!hydrated) return;
 
     const fetchPrices = async () => {
+      if (rawAssetsRef.current.length === 0) return;
       try {
-        console.log('[dashboard] Fetching prices...');
-        const response = await fetch('/api/refresh-prices');
-        if (!response.ok) {
-          console.error('[dashboard] Failed to fetch prices:', response.statusText);
-          return;
-        }
-        const prices: PriceMap = await response.json();
-        console.log('[dashboard] Prices received, updating dashboard');
-
-        // Save to localStorage
-        savePricesToStorage(prices);
-
-        // Update portfolio with new prices
-        const newData = recalculatePortfolioData(portfolioData.rawAssets || [], prices);
-        setPortfolioData(newData);
+        const res = await fetch('/api/refresh-prices');
+        if (!res.ok) return;
+        const prices: PriceMap = await res.json();
+        savePrices(prices);
+        setPortfolioData(buildPortfolioData(rawAssetsRef.current, prices));
       } catch (e) {
-        console.error('[dashboard] Error refreshing prices:', (e as Error).message);
-        // Silently fail - keep showing old data
+        console.error('[dashboard] Prices fetch error:', (e as Error).message);
       }
     };
 
-    // Fetch immediately
-    fetchPrices();
+    // Initial load: Notion first, then prices
+    fetchNotion().then(() => fetchPrices());
 
-    // Then refresh every 5 seconds
-    const interval = setInterval(fetchPrices, 5000);
+    // Refresh Notion every 5 min, prices every 5s
+    const notionInterval = setInterval(fetchNotion, 5 * 60 * 1000);
+    const pricesInterval = setInterval(fetchPrices, 5000);
+    return () => {
+      clearInterval(notionInterval);
+      clearInterval(pricesInterval);
+    };
+  }, []);
 
-    return () => clearInterval(interval);
-  }, [hydrated]);
-
-  // Show dashboard - all Notion data visible immediately
   return <Dashboard data={portfolioData} />;
 }
