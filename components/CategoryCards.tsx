@@ -21,7 +21,7 @@ export const CategoryCards = memo(function CategoryCards({
         return (
           <div
             key={item.category}
-            className={`animate-fade-in delay-${i + 1} bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-colors`}
+            className={`bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-colors`}
           >
             <div className="flex items-center gap-2 mb-3">
               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[item.category] }} />
@@ -55,7 +55,7 @@ export const CategoryCards = memo(function CategoryCards({
 
             <div className="w-full bg-zinc-800 rounded-full h-1.5">
               <div
-                className="h-1.5 rounded-full animate-slide-right"
+                className="h-1.5 rounded-full"
                 style={{
                   width: `${item.percent}%`,
                   backgroundColor: CATEGORY_COLORS[item.category],
