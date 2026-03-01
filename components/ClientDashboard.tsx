@@ -69,13 +69,11 @@ function buildPortfolioData(rawAssets: AssetRaw[], prices: PriceMap): PortfolioD
     let pnlPercent: number;
 
     if (raw.quantity <= 0) {
-      // Fully sold: realized P&L only
       totalValue = 0;
       totalCost = raw.totalCostGross;
       pnl = raw.totalProceeds - raw.totalCostGross;
       pnlPercent = raw.totalCostGross > 0 ? (pnl / raw.totalCostGross) * 100 : 0;
     } else {
-      // Still holding: unrealized P&L using netCost
       totalValue = raw.quantity * currentPrice;
       const netCost = raw.totalCostGross - raw.totalProceeds;
       totalCost = netCost;
@@ -146,26 +144,6 @@ function savePrices(prices: PriceMap) {
   }
 }
 
-function loadRawAssets(): AssetRaw[] {
-  try {
-    const s = localStorage.getItem('portfolio-raw-assets');
-    if (!s) return [];
-    const parsed = JSON.parse(s) as Array<Record<string, unknown>>;
-    // Migrate old format: add default values for new transaction fields
-    return parsed.map((a: Record<string, unknown>) => ({
-      ...a,
-      totalBuyQty: (a.totalBuyQty as number) ?? (a.quantity as number) ?? 0,
-      totalSellQty: (a.totalSellQty as number) ?? 0,
-      totalCostGross: (a.totalCostGross as number) ?? ((a.quantity as number) ?? 0) * ((a.buyPrice as number) ?? 0),
-      totalProceeds: (a.totalProceeds as number) ?? 0,
-      avgBuyPrice: (a.avgBuyPrice as number) ?? (a.buyPrice as number) ?? 0,
-      transactionCount: (a.transactionCount as number) ?? 1,
-    })) as AssetRaw[];
-  } catch {
-    return [];
-  }
-}
-
 function saveRawAssets(assets: AssetRaw[]) {
   try {
     localStorage.setItem('portfolio-raw-assets', JSON.stringify(assets));
@@ -193,30 +171,26 @@ function saveRefreshIntervalSec(seconds: number) {
   }
 }
 
-const emptyData: PortfolioData = {
-  assets: [],
-  totalValue: 0,
-  totalCost: 0,
-  totalPnl: 0,
-  totalPnlPercent: 0,
-  categoryBreakdown: [],
-  lastUpdated: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
-  usdToVndRate: 0,
-};
+interface ClientDashboardProps {
+  initialData: PortfolioData;
+}
 
-export function ClientDashboard() {
-  // SSR disabled → localStorage available in initializer → no flash of 0s
-  const [portfolioData, setPortfolioData] = useState<PortfolioData>(() => {
-    const storedAssets = loadRawAssets();
-    const storedPrices = loadPrices();
-    if (storedAssets.length > 0 && Object.keys(storedPrices).length > 0) {
-      return buildPortfolioData(storedAssets, storedPrices);
-    }
-    return emptyData;
+export function ClientDashboard({ initialData }: ClientDashboardProps) {
+  // Use server-fetched data for initial render (enables SSR)
+  const [portfolioData, setPortfolioData] = useState<PortfolioData>(initialData);
+  const rawAssetsRef = useRef<AssetRaw[]>(initialData.rawAssets || []);
+  const transactionsRef = useRef<TransactionRaw[]>(initialData.transactions || []);
+  const [refreshIntervalSec, setRefreshIntervalSec] = useState<number>(() => {
+    if (typeof window === 'undefined') return 30;
+    return loadRefreshIntervalSec();
   });
-  const rawAssetsRef = useRef<AssetRaw[]>(loadRawAssets());
-  const transactionsRef = useRef<TransactionRaw[]>([]);
-  const [refreshIntervalSec, setRefreshIntervalSec] = useState<number>(() => loadRefreshIntervalSec());
+
+  // Save server data to localStorage for offline fallback
+  useEffect(() => {
+    if (initialData.rawAssets?.length) {
+      saveRawAssets(initialData.rawAssets);
+    }
+  }, [initialData]);
 
   useEffect(() => {
     const fetchNotion = async () => {
@@ -230,7 +204,6 @@ export function ClientDashboard() {
         transactionsRef.current = notionData.transactions || [];
         saveRawAssets(raw);
 
-        // Rebuild with current prices + fresh assets
         const prices = loadPrices();
         if (Object.keys(prices).length > 0) {
           const built = buildPortfolioData(raw, prices);
@@ -263,10 +236,7 @@ export function ClientDashboard() {
       }
     };
 
-    // Initial load: Notion first, then prices
-    fetchNotion().then(() => fetchPrices());
-
-    // Refresh Notion every 5 min, prices by selected interval
+    // Server already fetched fresh data, only set up intervals for subsequent refreshes
     const notionInterval = setInterval(fetchNotion, 5 * 60 * 1000);
     const pricesInterval = setInterval(fetchPrices, refreshIntervalSec * 1000);
     return () => {

@@ -75,7 +75,7 @@ export function AllocationChart({
 
         <div className="w-full md:w-1/2 space-y-3">
           {data.map((item, i) => (
-            <div key={item.name} className="flex items-center gap-3">
+            <div key={item.name} className={`animate-fade-in delay-${i + 1} flex items-center gap-3`}>
               <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between text-sm">
@@ -84,7 +84,7 @@ export function AllocationChart({
                 </div>
                 <div className="w-full bg-zinc-800 rounded-full h-1.5 mt-1">
                   <div
-                    className="h-1.5 rounded-full"
+                    className="h-1.5 rounded-full animate-slide-right"
                     style={{
                       width: `${item.percent}%`,
                       backgroundColor: item.color,
