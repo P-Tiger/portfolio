@@ -25,29 +25,128 @@ if (!process.env.NOTION_TOKEN || !parentPageId) {
 
 const sampleTransactions = [
   // Bitcoin: 2 buy + 1 sell (DCA + partial sell)
-  { name: 'Bitcoin (BTC)', date: '2024-01-15', type: 'Buy', symbol: 'bitcoin', category: 'crypto', price: 2200000000, quantity: 0.03, note: 'DCA lần 1' },
-  { name: 'Bitcoin (BTC)', date: '2024-06-01', type: 'Buy', symbol: 'bitcoin', category: 'crypto', price: 2800000000, quantity: 0.04, note: 'DCA lần 2' },
-  { name: 'Bitcoin (BTC)', date: '2024-09-15', type: 'Sell', symbol: 'bitcoin', category: 'crypto', price: 3000000000, quantity: 0.02, note: 'Chốt lời 1 phần' },
+  {
+    name: 'Bitcoin (BTC)',
+    date: '2024-01-15',
+    type: 'Buy',
+    symbol: 'bitcoin',
+    category: 'crypto',
+    price: 2200000000,
+    quantity: 0.03,
+    note: 'DCA lần 1',
+  },
+  {
+    name: 'Bitcoin (BTC)',
+    date: '2024-06-01',
+    type: 'Buy',
+    symbol: 'bitcoin',
+    category: 'crypto',
+    price: 2800000000,
+    quantity: 0.04,
+    note: 'DCA lần 2',
+  },
+  {
+    name: 'Bitcoin (BTC)',
+    date: '2024-09-15',
+    type: 'Sell',
+    symbol: 'bitcoin',
+    category: 'crypto',
+    price: 3000000000,
+    quantity: 0.02,
+    note: 'Chốt lời 1 phần',
+  },
 
   // Ethereum: 1 buy
-  { name: 'Ethereum (ETH)', date: '2024-03-10', type: 'Buy', symbol: 'ethereum', category: 'crypto', price: 82000000, quantity: 1.2, note: '' },
+  {
+    name: 'Ethereum (ETH)',
+    date: '2024-03-10',
+    type: 'Buy',
+    symbol: 'ethereum',
+    category: 'crypto',
+    price: 82000000,
+    quantity: 1.2,
+    note: '',
+  },
 
   // Gold: 1 buy
-  { name: 'SJC 1 chỉ', date: '2024-02-20', type: 'Buy', symbol: '', category: 'gold', price: 9200000, quantity: 5, note: 'Vàng miếng SJC' },
+  {
+    name: 'SJC 1 chỉ',
+    date: '2024-02-20',
+    type: 'Buy',
+    symbol: '',
+    category: 'gold',
+    price: 9200000,
+    quantity: 5,
+    note: 'Vàng miếng SJC',
+  },
 
   // USD: 1 buy
-  { name: 'USD tiền mặt', date: '2024-01-05', type: 'Buy', symbol: '', category: 'usd', price: 24800, quantity: 2000, note: 'Giá quy đổi VND/USD' },
+  {
+    name: 'USD tiền mặt',
+    date: '2024-01-05',
+    type: 'Buy',
+    symbol: '',
+    category: 'usd',
+    price: 24800,
+    quantity: 2000,
+    note: 'Giá quy đổi VND/USD',
+  },
 
   // Stock VCB: 1 buy
-  { name: 'VCB - Vietcombank', date: '2024-04-10', type: 'Buy', symbol: 'VCB', category: 'stock', price: 88000, quantity: 500, note: 'Cổ phiếu ngân hàng' },
+  {
+    name: 'VCB - Vietcombank',
+    date: '2024-04-10',
+    type: 'Buy',
+    symbol: 'VCB',
+    category: 'stock',
+    price: 88000,
+    quantity: 500,
+    note: 'Cổ phiếu ngân hàng',
+  },
 
   // Stock FPT: 2 buy + 1 partial sell
-  { name: 'FPT Corporation', date: '2024-03-01', type: 'Buy', symbol: 'FPT', category: 'stock', price: 110000, quantity: 100, note: 'Cổ phiếu công nghệ' },
-  { name: 'FPT Corporation', date: '2024-05-15', type: 'Buy', symbol: 'FPT', category: 'stock', price: 130000, quantity: 100, note: 'Mua thêm' },
-  { name: 'FPT Corporation', date: '2024-08-01', type: 'Sell', symbol: 'FPT', category: 'stock', price: 145000, quantity: 50, note: 'Chốt lời 1 phần' },
+  {
+    name: 'FPT Corporation',
+    date: '2024-03-01',
+    type: 'Buy',
+    symbol: 'FPT',
+    category: 'stock',
+    price: 110000,
+    quantity: 100,
+    note: 'Cổ phiếu công nghệ',
+  },
+  {
+    name: 'FPT Corporation',
+    date: '2024-05-15',
+    type: 'Buy',
+    symbol: 'FPT',
+    category: 'stock',
+    price: 130000,
+    quantity: 100,
+    note: 'Mua thêm',
+  },
+  {
+    name: 'FPT Corporation',
+    date: '2024-08-01',
+    type: 'Sell',
+    symbol: 'FPT',
+    category: 'stock',
+    price: 145000,
+    quantity: 50,
+    note: 'Chốt lời 1 phần',
+  },
 
   // Cash: 1 buy (nạp tiền)
-  { name: 'Tiền mặt VND', date: '2024-01-01', type: 'Buy', symbol: '', category: 'cash', price: 1, quantity: 50000000, note: 'Tiền gửi ngân hàng' },
+  {
+    name: 'Tiền mặt VND',
+    date: '2024-01-01',
+    type: 'Buy',
+    symbol: '',
+    category: 'cash',
+    price: 1,
+    quantity: 50000000,
+    note: 'Tiền gửi ngân hàng',
+  },
 ];
 
 async function main() {
@@ -82,6 +181,14 @@ async function main() {
       Price: { number: { format: 'number' } },
       Quantity: { number: { format: 'number' } },
       Note: { rich_text: {} },
+      Status: {
+        select: {
+          options: [
+            { name: '1', color: 'green' },
+            { name: '-1', color: 'red' },
+          ],
+        },
+      },
     },
   });
 

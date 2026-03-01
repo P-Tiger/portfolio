@@ -9,6 +9,7 @@ import {
   CategoryBreakdown,
   PortfolioData,
   TransactionRaw,
+  TransactionStatus,
   TransactionType,
 } from './types';
 
@@ -37,6 +38,30 @@ function getSelect(prop: unknown): string {
   if (!prop || typeof prop !== 'object') return '';
   const select = (prop as Record<string, unknown>).select as { name: string } | null;
   return select?.name ?? '';
+}
+
+// Read Status from multiple possible Notion property types (select, status, number, rich_text)
+function getStatusValue(prop: unknown): string {
+  if (!prop || typeof prop !== 'object') return '';
+  const p = prop as Record<string, unknown>;
+
+  // Notion "select" type
+  if (p.select && typeof p.select === 'object') {
+    return ((p.select as { name: string }).name ?? '').trim();
+  }
+  // Notion native "status" type
+  if (p.status && typeof p.status === 'object') {
+    return ((p.status as { name: string }).name ?? '').trim();
+  }
+  // Notion "number" type
+  if (p.number !== undefined && p.number !== null) {
+    return String(p.number);
+  }
+  // Notion "rich_text" type
+  if (Array.isArray(p.rich_text) && p.rich_text.length > 0) {
+    return ((p.rich_text as Array<{ plain_text: string }>)[0]?.plain_text ?? '').trim();
+  }
+  return '';
 }
 
 function getNumber(prop: unknown): number {
@@ -94,9 +119,15 @@ async function fetchTransactionsFromNotion(): Promise<TransactionRaw[]> {
         price: getNumber(getProperty(p, 'Price')),
         quantity: qty,
         note: getRichText(getProperty(p, 'Note')),
+        status: getStatusValue(getProperty(p, 'Status')) as TransactionStatus | '',
       };
     })
     .filter((tx) => tx.quantity > 0);
+
+  const hiddenCount = data.filter((tx) => tx.status === TransactionStatus.Hidden).length;
+  if (hiddenCount > 0) {
+    console.log(`[notion] ${hiddenCount} transactions marked as hidden (status=-1)`);
+  }
 
   notionCache = { data, timestamp: now };
   console.log('[notion] Cached', data.length, 'transactions');
@@ -117,6 +148,11 @@ function aggregateTransactions(txs: TransactionRaw[]): AssetRaw[] {
   const assets: AssetRaw[] = [];
 
   for (const txList of Array.from(groups.values())) {
+    // Skip entire asset if any transaction is marked hidden
+    if (txList.some((tx) => tx.status === TransactionStatus.Hidden)) {
+      continue;
+    }
+
     let totalBuyQty = 0;
     let totalSellQty = 0;
     let totalCostGross = 0;

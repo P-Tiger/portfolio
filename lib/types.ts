@@ -2,6 +2,12 @@ export type Category = 'crypto' | 'gold' | 'usd' | 'stock' | 'cash';
 
 export type TransactionType = 'Buy' | 'Sell';
 
+// 1 = show, -1 = hidden
+export enum TransactionStatus {
+  Show = '1',
+  Hidden = '-1',
+}
+
 export interface TransactionRaw {
   id: string;
   name: string;
@@ -12,6 +18,7 @@ export interface TransactionRaw {
   price: number;
   quantity: number;
   note: string;
+  status: TransactionStatus | '';
 }
 
 export interface AssetRaw {
