@@ -157,14 +157,8 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
                 const isBuy = tx.type === 'Buy';
                 const total = tx.quantity * tx.price;
 
-                const txPnl = isBuy
-                  ? (asset.currentPrice - tx.price) * tx.quantity
-                  : (tx.price - asset.avgBuyPrice) * tx.quantity;
-                const txPnlBasis = isBuy ? tx.price : asset.avgBuyPrice;
-                const txPnlPercent =
-                  txPnlBasis !== 0
-                    ? ((isBuy ? asset.currentPrice - tx.price : tx.price - asset.avgBuyPrice) / txPnlBasis) * 100
-                    : 0;
+                const txPnl = isBuy ? (asset.currentPrice - tx.price) * tx.quantity : 0;
+                const txPnlPercent = isBuy && tx.price !== 0 ? ((asset.currentPrice - tx.price) / tx.price) * 100 : 0;
                 const isTxPnlPositive = txPnl >= 0;
 
                 return (
@@ -191,9 +185,9 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
                       </span>
                       {tx.note && <span className="text-zinc-500 truncate ml-2 max-w-[150px]">{tx.note}</span>}
                     </div>
-                    {asset.currentPrice > 0 && (
+                    {isBuy && asset.currentPrice > 0 && (
                       <div className="flex items-center justify-between text-xs mt-1">
-                        <span className="text-zinc-600">{isBuy ? 'vs giá TT' : 'vs giá TB mua'}</span>
+                        <span className="text-zinc-600">vs giá TT</span>
                         <span className={isTxPnlPositive ? 'text-emerald-400' : 'text-red-400'}>
                           {isTxPnlPositive ? '+' : ''}
                           {formatMoney(txPnl, displayCurrency, usdToVndRate)}
