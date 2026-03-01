@@ -2,36 +2,6 @@
 
 import { DisplayCurrency, formatMoney, getCurrencyLabel } from '@/lib/format';
 import { Asset } from '@/lib/types';
-import { Bar, BarChart, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-
-function CustomTooltip({
-  active,
-  payload,
-  displayCurrency,
-  usdToVndRate,
-}: {
-  active?: boolean;
-  payload?: Array<{ payload: { name: string; pnl: number; pnlPercent: number } }>;
-  displayCurrency: DisplayCurrency;
-  usdToVndRate: number;
-}) {
-  if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
-  const isPositive = d.pnl >= 0;
-  return (
-    <div className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm">
-      <p className="font-medium text-white">{d.name}</p>
-      <p className={isPositive ? 'text-emerald-400' : 'text-red-400'}>
-        {isPositive ? '+' : ''}
-        {formatMoney(d.pnl, displayCurrency, usdToVndRate)} {getCurrencyLabel(displayCurrency)}
-      </p>
-      <p className="text-zinc-400">
-        {isPositive ? '+' : ''}
-        {d.pnlPercent.toFixed(1)}%
-      </p>
-    </div>
-  );
-}
 
 export function PnlBarChart({
   assets,
@@ -61,26 +31,66 @@ export function PnlBarChart({
     );
   }
 
+  const maxAbs = Math.max(...data.map((d) => Math.abs(d.pnl)));
+  const hasNeg = data.some((d) => d.pnl < 0);
+  const hasPos = data.some((d) => d.pnl >= 0);
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
       <h2 className="text-lg font-semibold text-white mb-4">Lời / Lỗ theo tài sản</h2>
-      <div className="h-[300px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ left: 10, right: 20 }}>
-            <XAxis type="number" hide />
-            <YAxis type="category" dataKey="name" width={100} tick={{ fill: '#a1a1aa', fontSize: 12 }} />
-            <Tooltip
-              content={<CustomTooltip displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />}
-              cursor={{ fill: 'rgba(255,255,255,0.03)' }}
-            />
-            <ReferenceLine x={0} stroke="#3f3f46" />
-            <Bar dataKey="pnl" radius={[0, 4, 4, 0]} maxBarSize={24} isAnimationActive={false}>
-              {data.map((entry, i) => (
-                <Cell key={i} fill={entry.pnl >= 0 ? '#34d399' : '#f87171'} fillOpacity={0.85} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="space-y-2">
+        {data.map((item, i) => {
+          const isPositive = item.pnl >= 0;
+          const barWidth = maxAbs > 0 ? (Math.abs(item.pnl) / maxAbs) * 100 : 0;
+          return (
+            <div key={i} className="group relative flex items-center gap-2 h-7">
+              <span className="text-xs text-zinc-400 w-[100px] truncate text-right shrink-0">{item.name}</span>
+              <div className="flex-1 flex items-center h-full">
+                {hasNeg && hasPos ? (
+                  /* Two-sided layout when there are both positive and negative values */
+                  <div className="relative w-full h-full flex items-center">
+                    <div className="absolute left-1/2 top-0 bottom-0 w-px bg-zinc-700" />
+                    {isPositive ? (
+                      <div className="absolute left-1/2 h-5 rounded-r" style={{
+                        width: `${barWidth / 2}%`,
+                        backgroundColor: '#34d399',
+                        opacity: 0.85,
+                      }} />
+                    ) : (
+                      <div className="absolute right-1/2 h-5 rounded-l" style={{
+                        width: `${barWidth / 2}%`,
+                        backgroundColor: '#f87171',
+                        opacity: 0.85,
+                      }} />
+                    )}
+                  </div>
+                ) : (
+                  /* Single-sided layout */
+                  <div className="relative w-full h-full flex items-center">
+                    <div className="h-5 rounded" style={{
+                      width: `${barWidth}%`,
+                      backgroundColor: isPositive ? '#34d399' : '#f87171',
+                      opacity: 0.85,
+                      minWidth: barWidth > 0 ? '2px' : '0',
+                    }} />
+                  </div>
+                )}
+              </div>
+              {/* Tooltip on hover */}
+              <div className="hidden group-hover:block absolute left-1/2 -translate-x-1/2 -top-12 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm z-10 whitespace-nowrap pointer-events-none">
+                <p className="font-medium text-white">{item.name}</p>
+                <p className={isPositive ? 'text-emerald-400' : 'text-red-400'}>
+                  {isPositive ? '+' : ''}
+                  {formatMoney(item.pnl, displayCurrency, usdToVndRate)} {getCurrencyLabel(displayCurrency)}
+                </p>
+                <p className="text-zinc-400">
+                  {isPositive ? '+' : ''}
+                  {item.pnlPercent.toFixed(1)}%
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

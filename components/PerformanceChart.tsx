@@ -1,8 +1,7 @@
 'use client';
 
 import { DisplayCurrency, formatMoney, getCurrencyLabel } from '@/lib/format';
-import { useEffect, useId, useState, useTransition } from 'react';
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition } from 'react';
 
 interface PerformancePoint {
   date: string;
@@ -18,29 +17,7 @@ const TIMEFRAMES = [
   { key: '1m', label: '1M' },
 ] as const;
 
-function CustomTooltip({
-  active,
-  payload,
-  label,
-  displayCurrency,
-  usdToVndRate,
-}: {
-  active?: boolean;
-  payload?: Array<{ value: number }>;
-  label?: string;
-  displayCurrency: DisplayCurrency;
-  usdToVndRate: number;
-}) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm">
-      <p className="text-zinc-400 text-xs">{label}</p>
-      <p className="font-medium text-white">
-        {formatMoney(payload[0].value, displayCurrency, usdToVndRate)} {getCurrencyLabel(displayCurrency)}
-      </p>
-    </div>
-  );
-}
+const MARGIN = { top: 10, right: 10, bottom: 25, left: 10 };
 
 interface Props {
   title?: string;
@@ -60,6 +37,11 @@ export function PerformanceChart({
   const [data, setData] = useState<PerformancePoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [, startTfTransition] = useTransition();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const indicatorRef = useRef<SVGGElement>(null);
+  const [dims, setDims] = useState({ w: 0, h: 0 });
 
   useEffect(() => {
     const cat = category || 'overview';
@@ -76,18 +58,110 @@ export function PerformanceChart({
       });
   }, [activeTimeframe, category]);
 
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect;
+      setDims({ w: width, h: height });
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   const hasData = data.length >= 2;
   const first = hasData ? data[0].value : 0;
   const last = hasData ? data[data.length - 1].value : 0;
   const change = last - first;
   const changePercent = first > 0 ? (change / first) * 100 : 0;
   const isPositive = change >= 0;
-  const gradientColor = isPositive ? '#34d399' : '#f87171';
   const strokeColor = isPositive ? '#10b981' : '#ef4444';
+  const gradientColor = isPositive ? '#34d399' : '#f87171';
+
+  const chartW = dims.w - MARGIN.left - MARGIN.right;
+  const chartH = dims.h - MARGIN.top - MARGIN.bottom;
+
+  const chartData = useMemo(() => {
+    if (!hasData || chartW <= 0 || chartH <= 0) return null;
+    const values = data.map((d) => d.value);
+    const minV = Math.min(...values);
+    const maxV = Math.max(...values);
+    const range = maxV - minV || 1;
+
+    const points = data.map((d, i) => ({
+      x: MARGIN.left + (i / (data.length - 1)) * chartW,
+      y: MARGIN.top + chartH - ((d.value - minV) / range) * chartH,
+      data: d,
+    }));
+
+    const line = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+    const area =
+      line +
+      ` L${points[points.length - 1].x},${MARGIN.top + chartH} L${points[0].x},${MARGIN.top + chartH} Z`;
+
+    const labelCount = Math.min(5, data.length);
+    const xLabels: { x: number; label: string }[] = [];
+    for (let i = 0; i < labelCount; i++) {
+      const idx = Math.round((i / (labelCount - 1)) * (data.length - 1));
+      xLabels.push({ x: points[idx].x, label: data[idx].date });
+    }
+
+    return { points, linePath: line, areaPath: area, xLabels };
+  }, [data, hasData, chartW, chartH]);
+
+  // Ref-based tooltip - zero re-renders on mouse move
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<SVGSVGElement>) => {
+      if (!chartData || chartW <= 0) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const idx = Math.round(((mouseX - MARGIN.left) / chartW) * (data.length - 1));
+      const ci = Math.max(0, Math.min(data.length - 1, idx));
+      const p = chartData.points[ci];
+
+      const indicator = indicatorRef.current;
+      if (indicator) {
+        indicator.style.display = '';
+        const line = indicator.querySelector('line');
+        const circle = indicator.querySelector('circle');
+        if (line) {
+          line.setAttribute('x1', String(p.x));
+          line.setAttribute('x2', String(p.x));
+        }
+        if (circle) {
+          circle.setAttribute('cx', String(p.x));
+          circle.setAttribute('cy', String(p.y));
+        }
+      }
+
+      const tip = tooltipRef.current;
+      if (tip) {
+        tip.style.display = '';
+        const flipLeft = p.x > dims.w * 0.75;
+        tip.style.left = `${p.x}px`;
+        tip.style.top = `${p.y - 50}px`;
+        tip.style.transform = flipLeft ? 'translateX(-100%)' : 'translateX(-50%)';
+        tip.textContent = '';
+        const d1 = document.createElement('p');
+        d1.className = 'text-zinc-400 text-xs';
+        d1.textContent = p.data.date;
+        const d2 = document.createElement('p');
+        d2.className = 'font-medium text-white';
+        d2.textContent = `${formatMoney(p.data.value, displayCurrency, usdToVndRate)} ${getCurrencyLabel(displayCurrency)}`;
+        tip.appendChild(d1);
+        tip.appendChild(d2);
+      }
+    },
+    [chartData, chartW, data.length, dims.w, displayCurrency, usdToVndRate],
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    if (indicatorRef.current) indicatorRef.current.style.display = 'none';
+    if (tooltipRef.current) tooltipRef.current.style.display = 'none';
+  }, []);
 
   return (
-    <div className="animate-fade-in bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-      {/* Header row */}
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-baseline gap-3">
           <h2 className="text-lg font-semibold text-white">{title}</h2>
@@ -104,7 +178,6 @@ export function PerformanceChart({
             </div>
           )}
         </div>
-        {/* Timeframe selector */}
         <div className="flex gap-1 bg-zinc-800/50 rounded-lg p-1">
           {TIMEFRAMES.map((tf) => (
             <button
@@ -120,8 +193,7 @@ export function PerformanceChart({
         </div>
       </div>
 
-      {/* Chart area */}
-      <div className="h-[300px]">
+      <div ref={containerRef} className="h-[300px] relative">
         {loading ? (
           <div className="h-full flex items-center justify-center">
             <div className="flex items-center gap-2 text-zinc-500 text-sm">
@@ -129,7 +201,7 @@ export function PerformanceChart({
               Đang tải...
             </div>
           </div>
-        ) : !hasData && data.length === 0 ? (
+        ) : !hasData ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
               <p className="text-zinc-400 text-sm mb-1">Không có dữ liệu lịch sử</p>
@@ -137,38 +209,42 @@ export function PerformanceChart({
             </div>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
-              <defs>
-                <linearGradient id={`perfGrad_${gradientId}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={gradientColor} stopOpacity={0.3} />
-                  <stop offset="100%" stopColor={gradientColor} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis
-                dataKey="date"
-                tick={{ fill: '#71717a', fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-                interval="preserveStartEnd"
+          chartData &&
+          dims.w > 0 && (
+            <>
+              <svg
+                ref={svgRef}
+                width={dims.w}
+                height={dims.h}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+                className="overflow-visible"
+              >
+                <defs>
+                  <linearGradient id={`perfGrad_${gradientId}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={gradientColor} stopOpacity={0.3} />
+                    <stop offset="100%" stopColor={gradientColor} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <path d={chartData.areaPath} fill={`url(#perfGrad_${gradientId})`} />
+                <path d={chartData.linePath} fill="none" stroke={strokeColor} strokeWidth={2} />
+                {chartData.xLabels.map((l, i) => (
+                  <text key={i} x={l.x} y={dims.h - 4} textAnchor="middle" fill="#71717a" fontSize={11}>
+                    {l.label}
+                  </text>
+                ))}
+                <g ref={indicatorRef} style={{ display: 'none' }}>
+                  <line y1={MARGIN.top} y2={MARGIN.top + chartH} stroke="#3f3f46" strokeWidth={1} />
+                  <circle r={4} fill={strokeColor} stroke="#18181b" strokeWidth={2} />
+                </g>
+              </svg>
+              <div
+                ref={tooltipRef}
+                className="absolute pointer-events-none bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm z-10"
+                style={{ display: 'none' }}
               />
-              <YAxis hide domain={['dataMin', 'dataMax']} />
-              <Tooltip
-                content={<CustomTooltip displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />}
-                cursor={{ stroke: '#3f3f46' }}
-              />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke={strokeColor}
-                strokeWidth={2}
-                fill={`url(#perfGrad_${gradientId})`}
-                dot={false}
-                isAnimationActive={false}
-                activeDot={{ r: 4, fill: strokeColor, stroke: '#18181b', strokeWidth: 2 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+            </>
+          )
         )}
       </div>
     </div>

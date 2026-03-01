@@ -2,6 +2,12 @@ export type DisplayCurrency = 'VND' | 'USD';
 
 const DEFAULT_USD_TO_VND_RATE = 26000;
 
+const vndFormatter = new Intl.NumberFormat('vi-VN');
+const usdFormatter = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 function normalizeUsdToVndRate(rate?: number): number {
   if (!rate || !Number.isFinite(rate) || rate <= 0) return DEFAULT_USD_TO_VND_RATE;
   return rate;
@@ -10,13 +16,10 @@ function normalizeUsdToVndRate(rate?: number): number {
 export function formatMoney(value: number, currency: DisplayCurrency, usdToVndRate?: number): string {
   if (currency === 'USD') {
     const rate = normalizeUsdToVndRate(usdToVndRate);
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value / rate);
+    return usdFormatter.format(value / rate);
   }
 
-  return new Intl.NumberFormat('vi-VN').format(Math.round(value));
+  return vndFormatter.format(Math.round(value));
 }
 
 export function getCurrencyLabel(currency: DisplayCurrency): string {
@@ -24,11 +27,11 @@ export function getCurrencyLabel(currency: DisplayCurrency): string {
 }
 
 export function formatVND(value: number): string {
-  return new Intl.NumberFormat('vi-VN').format(Math.round(value));
+  return vndFormatter.format(Math.round(value));
 }
 
 export function formatVNDFull(value: number): string {
-  return new Intl.NumberFormat('vi-VN').format(Math.round(value));
+  return vndFormatter.format(Math.round(value));
 }
 
 export function formatQuantity(value: number): string {
