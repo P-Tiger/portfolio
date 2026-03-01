@@ -63,10 +63,11 @@ export const AssetTable = memo(function AssetTable({
 
   useEffect(() => {
     setPage(0);
-  }, [assets, sortKey, sortDirection]);
+  }, [sortKey, sortDirection]);
 
   const totalPages = Math.ceil(sortedAssets.length / PAGE_SIZE);
-  const pagedAssets = sortedAssets.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const safePage = totalPages > 0 ? Math.min(page, totalPages - 1) : 0;
+  const pagedAssets = sortedAssets.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
 
   if (assets.length === 0) {
     return (
@@ -299,17 +300,17 @@ export const AssetTable = memo(function AssetTable({
         <div className="px-5 py-3 border-t border-zinc-800 flex items-center justify-between">
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={page === 0}
+            disabled={safePage === 0}
             className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             Trước
           </button>
           <span className="text-xs text-zinc-500">
-            {page + 1} / {totalPages}
+            {safePage + 1} / {totalPages}
           </span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            disabled={page >= totalPages - 1}
+            disabled={safePage >= totalPages - 1}
             className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             Sau
