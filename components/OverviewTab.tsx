@@ -15,6 +15,10 @@ const PnlBarChart = dynamic(() => import('./PnlBarChart').then((m) => ({ default
   ssr: false,
   loading: () => <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-[380px]" />,
 });
+const PerformanceChart = dynamic(() => import('./PerformanceChart').then((m) => ({ default: m.PerformanceChart })), {
+  ssr: false,
+  loading: () => <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-[380px]" />,
+});
 
 export function OverviewTab({
   data,
@@ -31,6 +35,7 @@ export function OverviewTab({
     <div className="tab-content space-y-6">
       <PortfolioSummary data={data} displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />
       <CategoryCards data={data.categoryBreakdown} displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />
+      <PerformanceChart title="Biểu đồ tài sản" displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <AllocationChart data={data.categoryBreakdown} displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />
         <PnlBarChart assets={data.assets} displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />

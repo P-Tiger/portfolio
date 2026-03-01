@@ -63,6 +63,17 @@ export interface PerformancePoint {
   value: number;
 }
 
+export interface HistoryPoint {
+  date: string;
+  totalValue: number;
+  totalCost: number;
+  crypto: number;
+  gold: number;
+  usd: number;
+  stock: number;
+  cash: number;
+}
+
 export interface PortfolioData {
   assets: Asset[];
   totalValue: number;

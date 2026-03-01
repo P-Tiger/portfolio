@@ -10,6 +10,10 @@ const PnlBarChart = dynamic(() => import('./PnlBarChart').then((m) => ({ default
   ssr: false,
   loading: () => <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-[380px]" />,
 });
+const PerformanceChart = dynamic(() => import('./PerformanceChart').then((m) => ({ default: m.PerformanceChart })), {
+  ssr: false,
+  loading: () => <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-[380px]" />,
+});
 
 interface Props {
   category: Category;
@@ -86,6 +90,13 @@ export function CategoryTab({ category, assets, transactions, displayCurrency, u
           </p>
         </div>
       </div>
+
+      <PerformanceChart
+        title={`Biểu đồ ${label}`}
+        category={category}
+        displayCurrency={displayCurrency}
+        usdToVndRate={usdToVndRate}
+      />
 
       {assets.length > 1 && category !== 'cash' && (
         <PnlBarChart assets={assets} displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />

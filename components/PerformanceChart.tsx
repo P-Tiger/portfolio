@@ -10,12 +10,11 @@ interface PerformancePoint {
 }
 
 const TIMEFRAMES = [
-  { key: '5m', label: '5m' },
-  { key: '30m', label: '30m' },
-  { key: '1h', label: '1H' },
-  { key: '4h', label: '4H' },
   { key: '1d', label: '1D' },
   { key: '1m', label: '1M' },
+  { key: '3m', label: '3M' },
+  { key: '1y', label: '1Y' },
+  { key: 'all', label: 'ALL' },
 ] as const;
 
 function CustomTooltip({
@@ -56,7 +55,7 @@ export function PerformanceChart({
   usdToVndRate = 0,
 }: Props) {
   const gradientId = useId().replace(/:/g, '_');
-  const [activeTimeframe, setActiveTimeframe] = useState('4h');
+  const [activeTimeframe, setActiveTimeframe] = useState('1m');
   const [data, setData] = useState<PerformancePoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [, startTfTransition] = useTransition();
@@ -132,8 +131,8 @@ export function PerformanceChart({
         ) : !hasData && data.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
-              <p className="text-zinc-400 text-sm mb-1">Không có dữ liệu lịch sử</p>
-              <p className="text-zinc-500 text-xs">Danh mục này không chứa Crypto, Vàng, USD hoặc Cổ phiếu</p>
+              <p className="text-zinc-400 text-sm mb-1">Chưa có dữ liệu lịch sử</p>
+              <p className="text-zinc-500 text-xs">Dữ liệu sẽ được ghi nhận hàng ngày</p>
             </div>
           </div>
         ) : (
@@ -151,6 +150,10 @@ export function PerformanceChart({
                 axisLine={false}
                 tickLine={false}
                 interval="preserveStartEnd"
+                tickFormatter={(d: string) => {
+                  const date = new Date(d);
+                  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+                }}
               />
               <YAxis hide domain={['dataMin', 'dataMax']} />
               <Tooltip
