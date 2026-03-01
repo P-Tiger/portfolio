@@ -87,7 +87,7 @@ export function CategoryTab({ category, assets, transactions, displayCurrency, u
         </div>
       </div>
 
-      {assets.length > 1 && (
+      {assets.length > 1 && category !== 'cash' && (
         <PnlBarChart assets={assets} displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />
       )}
       <AssetTable
