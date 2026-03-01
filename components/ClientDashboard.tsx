@@ -263,12 +263,8 @@ export function ClientDashboard() {
       }
     };
 
-    // Parallel fetch for returning users (cached rawAssets), sequential for first-time
-    if (rawAssetsRef.current.length > 0) {
-      Promise.all([fetchNotion(), fetchPrices()]);
-    } else {
-      fetchNotion().then(() => fetchPrices());
-    }
+    // Initial load: Notion first, then prices
+    fetchNotion().then(() => fetchPrices());
 
     // Refresh Notion every 5 min, prices by selected interval
     const notionInterval = setInterval(fetchNotion, 5 * 60 * 1000);
