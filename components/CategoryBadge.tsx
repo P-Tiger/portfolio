@@ -1,6 +1,7 @@
 import { Category, CATEGORY_COLORS, CATEGORY_LABELS } from '@/lib/types';
+import { memo } from 'react';
 
-export function CategoryBadge({ category }: { category: Category }) {
+export const CategoryBadge = memo(function CategoryBadge({ category }: { category: Category }) {
   const color = CATEGORY_COLORS[category] || '#6b7280';
   const label = CATEGORY_LABELS[category] || category;
 
@@ -16,4 +17,4 @@ export function CategoryBadge({ category }: { category: Category }) {
       {label}
     </span>
   );
-}
+});

@@ -1,6 +1,7 @@
 'use client';
 
-import { Category, CATEGORY_LABELS, CATEGORY_COLORS, ALL_CATEGORIES } from '@/lib/types';
+import { ALL_CATEGORIES, Category, CATEGORY_COLORS, CATEGORY_LABELS } from '@/lib/types';
+import { memo } from 'react';
 
 export type TabKey = 'overview' | Category;
 
@@ -19,7 +20,7 @@ interface Props {
   categoryCounts: Record<string, number>;
 }
 
-export function TabNavigation({ active, onChange, categoryCounts }: Props) {
+export const TabNavigation = memo(function TabNavigation({ active, onChange, categoryCounts }: Props) {
   return (
     <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
       {TABS.map((tab) => {
@@ -30,7 +31,7 @@ export function TabNavigation({ active, onChange, categoryCounts }: Props) {
             key={tab.key}
             onClick={() => onChange(tab.key)}
             className={`
-              relative px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200
+              relative px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors duration-200
               ${isActive ? 'text-white shadow-lg' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'}
             `}
             style={
@@ -57,4 +58,4 @@ export function TabNavigation({ active, onChange, categoryCounts }: Props) {
       })}
     </div>
   );
-}
+});

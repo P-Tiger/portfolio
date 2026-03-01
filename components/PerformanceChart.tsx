@@ -110,7 +110,7 @@ export function PerformanceChart({
             <button
               key={tf.key}
               onClick={() => startTfTransition(() => setActiveTimeframe(tf.key))}
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
+              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
                 activeTimeframe === tf.key ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
               }`}
             >

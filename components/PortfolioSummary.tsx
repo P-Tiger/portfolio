@@ -2,6 +2,7 @@
 
 import { DisplayCurrency, formatMoney, getCurrencyLabel } from '@/lib/format';
 import { PortfolioData } from '@/lib/types';
+import { memo } from 'react';
 import { AnimatedNumber } from './AnimatedNumber';
 
 interface PortfolioSummaryProps {
@@ -10,7 +11,7 @@ interface PortfolioSummaryProps {
   usdToVndRate: number;
 }
 
-export function PortfolioSummary({ data, displayCurrency, usdToVndRate }: PortfolioSummaryProps) {
+export const PortfolioSummary = memo(function PortfolioSummary({ data, displayCurrency, usdToVndRate }: PortfolioSummaryProps) {
   const isPnlPositive = data.totalPnl >= 0;
 
   const cards = [
@@ -48,7 +49,7 @@ export function PortfolioSummary({ data, displayCurrency, usdToVndRate }: Portfo
       {cards.map((card, i) => (
         <div
           key={card.label}
-          className={`animate-fade-in delay-${i + 1} bg-zinc-900 border border-zinc-800 rounded-xl p-4 lg:p-5 hover:border-zinc-700 transition-colors`}
+          className={`bg-zinc-900 border border-zinc-800 rounded-xl p-4 lg:p-5 hover:border-zinc-700 transition-colors`}
         >
           <p className="text-zinc-400 text-xs sm:text-sm mb-2">{card.label}</p>
           <p className={`text-xl lg:text-2xl font-bold ${card.color}`}>
@@ -65,4 +66,4 @@ export function PortfolioSummary({ data, displayCurrency, usdToVndRate }: Portfo
       ))}
     </div>
   );
-}
+});

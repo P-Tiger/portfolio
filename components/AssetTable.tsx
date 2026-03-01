@@ -3,7 +3,7 @@
 import { DisplayCurrency, formatMoney, formatQuantity } from '@/lib/format';
 import { getAssetIcon } from '@/lib/icons';
 import { Asset, TransactionRaw } from '@/lib/types';
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { CategoryBadge } from './CategoryBadge';
 import { TransactionDetailModal } from './TransactionDetailModal';
 
@@ -11,7 +11,12 @@ type SortKey = 'name' | 'category' | 'quantity' | 'buyPrice' | 'currentPrice' | 
 type SortDirection = 'asc' | 'desc';
 const PAGE_SIZE = 10;
 
-export function AssetTable({
+function SortIndicator({ active, direction }: { active: boolean; direction: SortDirection }) {
+  if (!active) return <span className="text-zinc-600 ml-1">⇅</span>;
+  return <span className="text-emerald-400 ml-1">{direction === 'asc' ? '↑' : '↓'}</span>;
+}
+
+export const AssetTable = memo(function AssetTable({
   assets,
   showCategory = true,
   transactions = [],
@@ -63,10 +68,6 @@ export function AssetTable({
   const totalPages = Math.ceil(sortedAssets.length / PAGE_SIZE);
   const pagedAssets = sortedAssets.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const SortIndicator = ({ active }: { active: boolean }) => {
-    if (!active) return <span className="text-zinc-600 ml-1">⇅</span>;
-    return <span className="text-emerald-400 ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
-  };
   if (assets.length === 0) {
     return (
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
@@ -92,7 +93,7 @@ export function AssetTable({
               >
                 <div className="flex items-center">
                   Tài sản
-                  <SortIndicator active={sortKey === 'name'} />
+                  <SortIndicator active={sortKey === 'name'} direction={sortDirection} />
                 </div>
               </th>
               {showCategory && (
@@ -102,7 +103,7 @@ export function AssetTable({
                 >
                   <div className="flex items-center">
                     Loại
-                    <SortIndicator active={sortKey === 'category'} />
+                    <SortIndicator active={sortKey === 'category'} direction={sortDirection} />
                   </div>
                 </th>
               )}
@@ -112,7 +113,7 @@ export function AssetTable({
               >
                 <div className="flex items-center justify-end">
                   SL
-                  <SortIndicator active={sortKey === 'quantity'} />
+                  <SortIndicator active={sortKey === 'quantity'} direction={sortDirection} />
                 </div>
               </th>
               <th
@@ -121,7 +122,7 @@ export function AssetTable({
               >
                 <div className="flex items-center justify-end">
                   Giá TB ròng
-                  <SortIndicator active={sortKey === 'buyPrice'} />
+                  <SortIndicator active={sortKey === 'buyPrice'} direction={sortDirection} />
                 </div>
               </th>
               <th
@@ -130,7 +131,7 @@ export function AssetTable({
               >
                 <div className="flex items-center justify-end">
                   Giá TT
-                  <SortIndicator active={sortKey === 'currentPrice'} />
+                  <SortIndicator active={sortKey === 'currentPrice'} direction={sortDirection} />
                 </div>
               </th>
               <th
@@ -139,7 +140,7 @@ export function AssetTable({
               >
                 <div className="flex items-center justify-end">
                   Giá trị
-                  <SortIndicator active={sortKey === 'totalValue'} />
+                  <SortIndicator active={sortKey === 'totalValue'} direction={sortDirection} />
                 </div>
               </th>
               <th
@@ -148,7 +149,7 @@ export function AssetTable({
               >
                 <div className="flex items-center justify-end">
                   P&L
-                  <SortIndicator active={sortKey === 'pnl'} />
+                  <SortIndicator active={sortKey === 'pnl'} direction={sortDirection} />
                 </div>
               </th>
             </tr>
@@ -161,7 +162,7 @@ export function AssetTable({
                 <tr
                   key={asset.id}
                   onClick={() => setSelectedAsset(asset)}
-                  className={`animate-fade-in delay-${Math.min(i + 1, 8)} border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors cursor-pointer ${isSoldOut ? 'opacity-50' : ''}`}
+                  className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors cursor-pointer ${isSoldOut ? 'opacity-50' : ''}`}
                 >
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2">
@@ -244,7 +245,7 @@ export function AssetTable({
               <div
                 key={asset.id}
                 onClick={() => setSelectedAsset(asset)}
-                className={`animate-fade-in delay-${Math.min(i + 1, 8)} p-4 hover:bg-zinc-800/20 cursor-pointer ${isSoldOut ? 'opacity-50' : ''}`}
+                className={`p-4 hover:bg-zinc-800/20 cursor-pointer ${isSoldOut ? 'opacity-50' : ''}`}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-start gap-2">
@@ -327,4 +328,4 @@ export function AssetTable({
       )}
     </div>
   );
-}
+});

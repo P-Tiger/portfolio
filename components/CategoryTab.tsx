@@ -56,21 +56,21 @@ export function CategoryTab({ category, assets, transactions, displayCurrency, u
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="animate-fade-in delay-1 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <p className="text-zinc-400 text-xs mb-2">Tổng giá trị {label}</p>
           <p className="text-xl font-bold text-white">
             <AnimatedNumber value={totalValue} formatter={(v) => formatMoney(v, displayCurrency, usdToVndRate)} />
             <span className="text-xs text-zinc-500 ml-1 font-normal">{getCurrencyLabel(displayCurrency)}</span>
           </p>
         </div>
-        <div className="animate-fade-in delay-2 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <p className="text-zinc-400 text-xs mb-2">Vốn ròng</p>
           <p className="text-xl font-bold text-white">
             <AnimatedNumber value={totalCost} formatter={(v) => formatMoney(v, displayCurrency, usdToVndRate)} />
             <span className="text-xs text-zinc-500 ml-1 font-normal">{getCurrencyLabel(displayCurrency)}</span>
           </p>
         </div>
-        <div className="animate-fade-in delay-3 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <p className="text-zinc-400 text-xs mb-2">P&L</p>
           <p className={`text-xl font-bold ${isPnlPositive ? 'text-emerald-400' : 'text-red-400'}`}>
             {isPnlPositive ? '+' : ''}
@@ -78,7 +78,7 @@ export function CategoryTab({ category, assets, transactions, displayCurrency, u
             <span className="text-xs ml-1 font-normal">{getCurrencyLabel(displayCurrency)}</span>
           </p>
         </div>
-        <div className="animate-fade-in delay-4 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <p className="text-zinc-400 text-xs mb-2">% Lời/Lỗ</p>
           <p className={`text-xl font-bold ${isPnlPositive ? 'text-emerald-400' : 'text-red-400'}`}>
             {isPnlPositive ? '+' : ''}

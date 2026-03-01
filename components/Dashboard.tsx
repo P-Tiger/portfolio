@@ -2,7 +2,7 @@
 
 import { DisplayCurrency } from '@/lib/format';
 import { Category, PortfolioData } from '@/lib/types';
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { CategoryTab } from './CategoryTab';
 import { OverviewTab } from './OverviewTab';
 import { TabKey, TabNavigation } from './TabNavigation';
@@ -17,6 +17,10 @@ export function Dashboard({ data, refreshIntervalSec, onRefreshIntervalChange }:
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [displayCurrency, setDisplayCurrency] = useState<DisplayCurrency>('VND');
   const [, startTabTransition] = useTransition();
+
+  const handleTabChange = useCallback((tab: TabKey) => {
+    startTabTransition(() => setActiveTab(tab));
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem('portfolio-display-currency');
@@ -81,7 +85,7 @@ export function Dashboard({ data, refreshIntervalSec, onRefreshIntervalChange }:
       <div className="mb-6 bg-zinc-900/50 border border-zinc-800 rounded-xl p-2">
         <TabNavigation
           active={activeTab}
-          onChange={(tab) => startTabTransition(() => setActiveTab(tab))}
+          onChange={handleTabChange}
           categoryCounts={categoryCounts}
         />
       </div>

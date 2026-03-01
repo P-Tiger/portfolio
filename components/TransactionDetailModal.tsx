@@ -3,7 +3,7 @@
 import { DisplayCurrency, formatMoney, formatPercent, formatQuantity } from '@/lib/format';
 import { getAssetIcon } from '@/lib/icons';
 import { Asset, TransactionRaw } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CategoryBadge } from './CategoryBadge';
 
@@ -21,13 +21,15 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
   const [page, setPage] = useState(0);
 
   // Filter transactions for this asset
-  const assetTxs = transactions
-    .filter((tx) => {
-      const txKey = (tx.symbol || tx.name) + '::' + tx.category;
-      const assetKey = (asset.symbol || asset.name) + '::' + asset.category;
-      return txKey === assetKey;
-    })
-    .sort((a, b) => b.date.localeCompare(a.date)); // newest first
+  const assetTxs = useMemo(() => {
+    return transactions
+      .filter((tx) => {
+        const txKey = (tx.symbol || tx.name) + '::' + tx.category;
+        const assetKey = (asset.symbol || asset.name) + '::' + asset.category;
+        return txKey === assetKey;
+      })
+      .sort((a, b) => b.date.localeCompare(a.date)); // newest first
+  }, [transactions, asset.symbol, asset.name, asset.category]);
 
   const totalPages = Math.ceil(assetTxs.length / PAGE_SIZE);
   const pagedTxs = assetTxs.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -58,7 +60,7 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/70" />
       <div
         className="relative bg-zinc-900 border border-zinc-700 rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[90dvh] sm:max-h-[85vh] overflow-hidden flex flex-col animate-fade-in"
         onClick={(e) => e.stopPropagation()}
