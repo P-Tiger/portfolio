@@ -16,9 +16,10 @@ export async function GET(request: NextRequest) {
     // Collect all crypto and stock tickers
     const cryptoIds = assets.filter((a) => a.category === 'crypto').map((a) => a.symbol.toLowerCase());
     const stockTickers = assets.filter((a) => a.category === 'stock').map((a) => a.symbol.toUpperCase());
+    const includeUsdRate = hasUsd || cryptoIds.length > 0;
 
     // Fetch fresh prices
-    const prices = await fetchAllPricesCached(cryptoIds, stockTickers, hasGold, hasUsd, cacheTtlSec);
+    const prices = await fetchAllPricesCached(cryptoIds, stockTickers, hasGold, includeUsdRate, cacheTtlSec);
 
     return NextResponse.json(prices);
   } catch (e) {

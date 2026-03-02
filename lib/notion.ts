@@ -1,5 +1,5 @@
 import { Client } from '@notionhq/client';
-import { fetchAllPrices } from './prices';
+import { fetchAllPrices, fetchUsdRate } from './prices';
 import {
   Asset,
   AssetRaw,
@@ -22,6 +22,21 @@ const databaseId = process.env.NOTION_DATABASE_ID!;
 // In-memory cache for Notion data (5 minutes TTL)
 let notionCache: { data: TransactionRaw[]; timestamp: number } | null = null;
 const NOTION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes in ms
+const USD_RATE_CACHE_TTL = 5 * 60 * 1000;
+let usdRateCache: { rate: number; timestamp: number } | null = null;
+
+async function getUsdToVndRate(): Promise<number> {
+  const now = Date.now();
+  if (usdRateCache && now - usdRateCache.timestamp < USD_RATE_CACHE_TTL) {
+    return usdRateCache.rate;
+  }
+
+  const rate = (await fetchUsdRate()).__usd__?.vnd ?? 0;
+  if (rate > 0) {
+    usdRateCache = { rate, timestamp: now };
+  }
+  return rate;
+}
 
 function getProperty(page: Record<string, unknown>, name: string): unknown {
   const props = page.properties as Record<string, Record<string, unknown>>;
@@ -91,6 +106,8 @@ async function fetchTransactionsFromNotion(): Promise<TransactionRaw[]> {
   console.log('[notion] Fetching fresh transactions from Notion...');
 
   const allResults: Array<Record<string, unknown>> = [];
+  const usdToVndRate = await getUsdToVndRate();
+  const effectiveUsdToVndRate = usdToVndRate > 0 ? usdToVndRate : 26000;
   let hasMore = true;
   let startCursor: string | undefined = undefined;
 
@@ -109,14 +126,20 @@ async function fetchTransactionsFromNotion(): Promise<TransactionRaw[]> {
   const data: TransactionRaw[] = allResults
     .map((p) => {
       const qty = getNumber(getProperty(p, 'Quantity'));
+      const category = getSelect(getProperty(p, 'Category')).toLowerCase() as Category;
+      const inputPrice = getNumber(getProperty(p, 'Price'));
+      const isCryptoUsdInput = category === 'crypto';
+      const convertedPrice = isCryptoUsdInput ? inputPrice * effectiveUsdToVndRate : inputPrice;
       return {
         id: p.id as string,
         name: getTitle(getProperty(p, 'Name')),
         date: getDate(getProperty(p, 'Date')),
         type: (getSelect(getProperty(p, 'Type')) || 'Buy') as TransactionType,
         symbol: getRichText(getProperty(p, 'Symbol')).trim(),
-        category: getSelect(getProperty(p, 'Category')).toLowerCase() as Category,
-        price: getNumber(getProperty(p, 'Price')),
+        category,
+        price: convertedPrice,
+        inputPrice,
+        inputCurrency: (isCryptoUsdInput ? 'USD' : 'VND') as 'USD' | 'VND',
         quantity: qty,
         note: getRichText(getProperty(p, 'Note')),
         status: getStatusValue(getProperty(p, 'Status')) as TransactionStatus | '',
@@ -350,8 +373,9 @@ export async function getPortfolioData(): Promise<PortfolioData> {
   const stockTickers = rawAssets.filter((a) => a.category === 'stock' && a.symbol).map((a) => a.symbol.toUpperCase());
   const hasGold = rawAssets.some((a) => a.category === 'gold');
   const hasUsd = rawAssets.some((a) => a.category === 'usd');
+  const includeUsdRate = hasUsd || cryptoIds.length > 0;
 
-  const prices = await fetchAllPrices(cryptoIds, stockTickers, hasGold, hasUsd);
+  const prices = await fetchAllPrices(cryptoIds, stockTickers, hasGold, includeUsdRate);
   const assets: Asset[] = rawAssets.map((raw) => resolvePrice(raw, prices));
 
   const portfolioData = buildPortfolioData(assets);

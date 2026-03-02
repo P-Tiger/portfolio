@@ -16,6 +16,8 @@ export interface TransactionRaw {
   symbol: string;
   category: Category;
   price: number;
+  inputPrice?: number;
+  inputCurrency?: 'USD' | 'VND';
   quantity: number;
   note: string;
   status: TransactionStatus | '';

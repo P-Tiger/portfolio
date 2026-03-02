@@ -156,6 +156,7 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
               {pagedTxs.map((tx) => {
                 const isBuy = tx.type === 'Buy';
                 const total = tx.quantity * tx.price;
+                const showVndSubline = displayCurrency === 'USD' && tx.inputCurrency === 'USD';
 
                 const txPnl = isBuy ? (asset.currentPrice - tx.price) * tx.quantity : 0;
                 const txPnlPercent = isBuy && tx.price !== 0 ? ((asset.currentPrice - tx.price) / tx.price) * 100 : 0;
@@ -179,12 +180,23 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
                         {formatMoney(total, displayCurrency, usdToVndRate)}
                       </span>
                     </div>
+                    {showVndSubline && (
+                      <div className="text-right text-[11px] text-zinc-500 mb-1">
+                        {isBuy ? '-' : '+'}
+                        {formatMoney(total, 'VND', usdToVndRate)} VND
+                      </div>
+                    )}
                     <div className="flex items-center justify-between text-xs text-zinc-400">
                       <span>
                         {formatQuantity(tx.quantity)} x {formatMoney(tx.price, displayCurrency, usdToVndRate)}
                       </span>
                       {tx.note && <span className="text-zinc-500 truncate ml-2 max-w-[150px]">{tx.note}</span>}
                     </div>
+                    {showVndSubline && (
+                      <div className="text-[11px] text-zinc-500 mt-1">
+                        {formatMoney(tx.price, 'VND', usdToVndRate)} VND / đơn vị
+                      </div>
+                    )}
                     {isBuy && asset.currentPrice > 0 && (
                       <div className="flex items-center justify-between text-xs mt-1">
                         <span className="text-zinc-600">vs giá TT</span>
