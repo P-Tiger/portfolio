@@ -1,6 +1,6 @@
 import { Client } from '@notionhq/client';
-import { PerformancePoint } from './types';
 import type { HistoryPoint } from './types';
+import { PerformancePoint } from './types';
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 const historyDbId = process.env.NOTION_HISTORY_DB_ID!;
@@ -28,7 +28,7 @@ interface HistoryRow {
 
 let cachedRows: HistoryRow[] = [];
 let cacheTimestamp = 0;
-const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
+const CACHE_TTL = 48 * 60 * 60 * 1000; // 48h
 
 // --- WRITE (used by cron) ---
 export async function writeSnapshot(point: HistoryPoint): Promise<void> {
