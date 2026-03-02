@@ -9,6 +9,9 @@ const inter = Inter({ subsets: ['latin', 'vietnamese'] });
 export const metadata: Metadata = {
   title: 'Portfolio Dashboard',
   description: 'Quản lý danh mục đầu tư cá nhân',
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -33,15 +33,24 @@ function DashboardSkeleton() {
 }
 
 const ClientDashboard = dynamic(
-  () => import('@/components/ClientDashboard').then(mod => ({ default: mod.ClientDashboard })),
+  () => import('@/components/ClientDashboard').then((mod) => ({ default: mod.ClientDashboard })),
   { ssr: false, loading: () => <DashboardSkeleton /> },
 );
 
 export default function Home() {
   return (
     <main className="min-h-screen px-4 py-6 max-w-6xl mx-auto">
-      <div className="mb-6 flex items-baseline justify-between">
-        <h1 className="text-2xl sm:text-3xl font-bold text-white">Portfolio Dashboard</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <svg width="36" height="36" viewBox="0 0 512 512" className="shrink-0" aria-hidden="true">
+            <rect width="512" height="512" rx="108" fill="#18181b" />
+            <rect x="80" y="304" width="80" height="128" rx="14" fill="#10b981" opacity="0.45" />
+            <rect x="184" y="224" width="80" height="208" rx="14" fill="#10b981" opacity="0.65" />
+            <rect x="288" y="152" width="80" height="280" rx="14" fill="#10b981" opacity="0.85" />
+            <rect x="392" y="80" width="80" height="352" rx="14" fill="#10b981" />
+          </svg>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Portfolio Dashboard</h1>
+        </div>
       </div>
 
       <ClientDashboard />
