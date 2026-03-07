@@ -78,7 +78,7 @@ export const AssetTable = memo(function AssetTable({
   }
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden contain-layout">
       <div className="px-5 py-4 border-b border-zinc-800">
         <h2 className="text-lg font-semibold text-white">Chi tiết tài sản ({assets.length})</h2>
       </div>
@@ -163,7 +163,7 @@ export const AssetTable = memo(function AssetTable({
                 <tr
                   key={asset.id}
                   onClick={() => setSelectedAsset(asset)}
-                  className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors cursor-pointer ${isSoldOut ? 'opacity-50' : ''}`}
+                  className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 cursor-pointer ${isSoldOut ? 'opacity-50' : ''}`}
                 >
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2">
@@ -228,10 +228,10 @@ export const AssetTable = memo(function AssetTable({
             <button
               key={option.key}
               onClick={() => handleSort(option.key)}
-              className={`px-3 py-1 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+              className={`px-3 py-1 text-xs font-medium rounded-md whitespace-nowrap ${
                 sortKey === option.key
                   ? 'bg-emerald-400/20 text-emerald-400'
-                  : 'bg-zinc-800/50 text-zinc-400 hover:text-zinc-200'
+                  : 'bg-zinc-800/50 text-zinc-400 active:text-zinc-200'
               }`}
             >
               {option.label} {sortKey === option.key && (sortDirection === 'asc' ? '↑' : '↓')}
@@ -301,7 +301,7 @@ export const AssetTable = memo(function AssetTable({
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={safePage === 0}
-            className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300 active:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             Trước
           </button>
@@ -311,7 +311,7 @@ export const AssetTable = memo(function AssetTable({
           <button
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={safePage >= totalPages - 1}
-            className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300 active:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             Sau
           </button>

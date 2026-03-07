@@ -9,24 +9,37 @@ interface Props {
   className?: string;
 }
 
-export function AnimatedNumber({ value, duration = 800, formatter, className }: Props) {
-  const [display, setDisplay] = useState(0);
-  const ref = useRef<number>(0);
+// Check if user prefers reduced motion or is on mobile (skip animation for better INP)
+const shouldSkipAnimation = () => {
+  if (typeof window === 'undefined') return true;
+  // Check for reduced motion preference
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return true;
+  // Skip animation on mobile for better INP (screen width < 768px)
+  if (window.innerWidth < 768) return true;
+  return false;
+};
+
+export function AnimatedNumber({ value, duration = 500, formatter, className }: Props) {
+  const [display, setDisplay] = useState(value);
+  const ref = useRef<number>(value);
   const startTime = useRef<number>(0);
   const rafId = useRef<number>(0);
   const lastRenderTime = useRef<number>(0);
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
     const from = ref.current;
     const to = value;
 
-    // Skip animation for subsequent updates (only animate from 0 on first mount)
-    if (from !== 0) {
+    // Skip animation: on mobile, reduced motion, or subsequent updates
+    if (shouldSkipAnimation() || !isFirstRender.current || from !== 0) {
       ref.current = to;
       setDisplay(to);
+      isFirstRender.current = false;
       return;
     }
 
+    isFirstRender.current = false;
     startTime.current = performance.now();
     lastRenderTime.current = 0;
 
@@ -37,7 +50,8 @@ export function AnimatedNumber({ value, duration = 800, formatter, className }: 
       const current = from + (to - from) * eased;
       ref.current = current;
 
-      if (now - lastRenderTime.current >= 50 || progress >= 1) {
+      // Throttle to ~15fps (66ms) instead of ~20fps (50ms) for better performance
+      if (now - lastRenderTime.current >= 66 || progress >= 1) {
         setDisplay(current);
         lastRenderTime.current = now;
       }

@@ -43,11 +43,14 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  // Prevent body scroll
+  // Prevent body scroll - use class toggle instead of direct style manipulation to avoid layout thrashing
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.classList.add('modal-open');
+    document.body.style.paddingRight = `${scrollbarWidth}px`;
     return () => {
-      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+      document.body.style.paddingRight = '';
     };
   }, []);
 
@@ -62,7 +65,7 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70" />
       <div
-        className="relative bg-zinc-900 border border-zinc-700 rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[90dvh] sm:max-h-[85vh] overflow-hidden flex flex-col animate-fade-in"
+        className="relative bg-zinc-900 border border-zinc-700 rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[90dvh] sm:max-h-[85vh] overflow-hidden flex flex-col animate-modal-in will-change-transform"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -77,10 +80,7 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
               </div>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-zinc-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-zinc-800"
-          >
+          <button onClick={onClose} className="text-zinc-400 active:text-white p-1 rounded-lg active:bg-zinc-800">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
@@ -222,7 +222,7 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300 active:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Trước
             </button>
@@ -232,7 +232,7 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300 active:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Sau
             </button>
