@@ -128,9 +128,7 @@ export const MarketSentiment = memo(function MarketSentiment() {
         try {
           // Try to get VIX-based sentiment (inverted: high VIX = fear, low VIX = greed)
           // Using Yahoo Finance proxy through a CORS-enabled endpoint
-          const vixRes = await fetch(
-            'https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=1d',
-          );
+          const vixRes = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=1d');
           if (vixRes.ok) {
             const vixData = await vixRes.json();
             const vixValue = vixData.chart?.result?.[0]?.meta?.regularMarketPrice || 20;
