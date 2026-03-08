@@ -5,7 +5,7 @@ import { PortfolioData, TransactionRaw } from '@/lib/types';
 import dynamic from 'next/dynamic';
 import { AssetTable } from './AssetTable';
 import { CategoryCards } from './CategoryCards';
-import { MarketSentiment } from './MarketSentiment';
+import { CryptoSentiment } from './MarketSentiment';
 import { PortfolioSummary } from './PortfolioSummary';
 
 const AllocationChart = dynamic(() => import('./AllocationChart').then((m) => ({ default: m.AllocationChart })), {
@@ -35,7 +35,7 @@ export function OverviewTab({
   return (
     <div className="tab-content space-y-6">
       <PortfolioSummary data={data} displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />
-      <MarketSentiment />
+      <CryptoSentiment />
       <CategoryCards data={data.categoryBreakdown} displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />
       <PerformanceChart title="Biểu đồ tài sản" displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
