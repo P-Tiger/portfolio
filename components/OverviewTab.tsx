@@ -7,6 +7,7 @@ import { AssetTable } from './AssetTable';
 import { CategoryCards } from './CategoryCards';
 import { CryptoSentiment } from './MarketSentiment';
 import { PortfolioSummary } from './PortfolioSummary';
+import { CryptoETFNetFlow } from './CryptoETFNetFlow';
 
 const AllocationChart = dynamic(() => import('./AllocationChart').then((m) => ({ default: m.AllocationChart })), {
   ssr: false,
@@ -36,6 +37,7 @@ export function OverviewTab({
     <div className="tab-content space-y-6">
       <PortfolioSummary data={data} displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />
       <CryptoSentiment />
+      <CryptoETFNetFlow />
       <CategoryCards data={data.categoryBreakdown} displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />
       <PerformanceChart title="Biểu đồ tài sản" displayCurrency={displayCurrency} usdToVndRate={usdToVndRate} />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

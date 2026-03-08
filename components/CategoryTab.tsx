@@ -5,6 +5,7 @@ import { Asset, Category, CATEGORY_COLORS, CATEGORY_LABELS, TransactionRaw } fro
 import dynamic from 'next/dynamic';
 import { AnimatedNumber } from './AnimatedNumber';
 import { AssetTable } from './AssetTable';
+import { CryptoETFNetFlow } from './CryptoETFNetFlow';
 import { CryptoSentiment } from './MarketSentiment';
 
 const PnlBarChart = dynamic(() => import('./PnlBarChart').then((m) => ({ default: m.PnlBarChart })), {
@@ -94,6 +95,7 @@ export function CategoryTab({ category, assets, transactions, displayCurrency, u
 
       {/* Sentiment chart for crypto or stock */}
       {category === 'crypto' && <CryptoSentiment />}
+      {category === 'crypto' && <CryptoETFNetFlow />}
 
       <PerformanceChart
         title={`Biểu đồ ${label}`}
