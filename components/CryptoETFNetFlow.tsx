@@ -94,11 +94,11 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   const data = payload[0].payload;
 
   return (
-    <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 shadow-xl">
-      <p className="text-zinc-400 text-xs mb-2">{label}</p>
+    <div className="theme-bg-secondary theme-border-light border rounded-lg p-3 shadow-xl">
+      <p className="theme-text-secondary text-xs mb-2">{label}</p>
       <div className="flex items-center gap-2 mb-1">
         <div className="w-2 h-2 rounded-full bg-orange-500" />
-        <span className="text-zinc-300 text-sm">BTC ETF:</span>
+        <span className="theme-text-secondary text-sm">BTC ETF:</span>
         <span className={`text-sm font-medium ${data.btcFlow >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
           {data.btcFlow >= 0 ? '+' : ''}
           {formatFlowFull(data.btcFlow)}
@@ -106,14 +106,14 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
       </div>
       <div className="flex items-center gap-2">
         <div className="w-2 h-2 rounded-full bg-blue-500" />
-        <span className="text-zinc-300 text-sm">ETH ETF:</span>
+        <span className="theme-text-secondary text-sm">ETH ETF:</span>
         <span className={`text-sm font-medium ${data.ethFlow >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
           {data.ethFlow >= 0 ? '+' : ''}
           {formatFlowFull(data.ethFlow)}
         </span>
       </div>
-      <div className="border-t border-zinc-700 mt-2 pt-2">
-        <span className="text-zinc-400 text-xs">Total: </span>
+      <div className="border-t theme-border mt-2 pt-2">
+        <span className="theme-text-secondary text-xs">Total: </span>
         <span className={`text-sm font-medium ${data.total >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
           {data.total >= 0 ? '+' : ''}
           {formatFlowFull(data.total)}
@@ -178,20 +178,20 @@ export const CryptoETFNetFlow = memo(function CryptoETFNetFlow() {
 
   if (loading && data.length === 0) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 animate-pulse">
-        <div className="h-5 bg-zinc-800 rounded w-48 mb-4" />
+      <div className="theme-bg-card theme-border border rounded-xl p-5 animate-pulse">
+        <div className="h-5 theme-bg-tertiary rounded w-48 mb-4" />
         <div className="grid grid-cols-3 gap-3 mb-4">
-          <div className="h-16 bg-zinc-800 rounded" />
-          <div className="h-16 bg-zinc-800 rounded" />
-          <div className="h-16 bg-zinc-800 rounded" />
+          <div className="h-16 theme-bg-tertiary rounded" />
+          <div className="h-16 theme-bg-tertiary rounded" />
+          <div className="h-16 theme-bg-tertiary rounded" />
         </div>
-        <div className="h-[220px] bg-zinc-800 rounded" />
+        <div className="h-[220px] theme-bg-tertiary rounded" />
       </div>
     );
   }
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 transition-colors">
+    <div className="theme-bg-card theme-border border rounded-xl p-5 hover:theme-border-light transition-colors">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400">
@@ -199,16 +199,16 @@ export const CryptoETFNetFlow = memo(function CryptoETFNetFlow() {
               <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
             </svg>
           </div>
-          <span className="text-base font-medium text-zinc-300">Crypto ETFs Net Flow</span>
+          <span className="text-base font-medium theme-text-secondary">Crypto ETFs Net Flow</span>
         </div>
         {/* Timeframe selector */}
-        <div className="flex gap-1 bg-zinc-800 rounded-lg p-1">
+        <div className="flex gap-1 theme-bg-tertiary rounded-lg p-1">
           {(['30D', '1Y', 'ALL'] as Timeframe[]).map((tf) => (
             <button
               key={tf}
               onClick={() => setTimeframe(tf)}
               className={`px-2.5 py-1 text-xs rounded transition-colors ${
-                timeframe === tf ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'
+                timeframe === tf ? 'theme-btn-active' : 'theme-btn-inactive'
               }`}
             >
               {tf}
@@ -225,29 +225,29 @@ export const CryptoETFNetFlow = memo(function CryptoETFNetFlow() {
         <>
           {/* Summary stats */}
           <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="bg-zinc-800/50 rounded-lg p-3">
+            <div className="theme-bg-tertiary rounded-lg p-3">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs text-zinc-400">Total Net Flow</span>
+                <span className="text-xs theme-text-secondary">Total Net Flow</span>
               </div>
               <p className={`text-lg font-bold ${isTotalPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                 {isTotalPositive ? '+' : ''}
                 {formatFlowFull(totals.total)}
               </p>
             </div>
-            <div className="bg-zinc-800/50 rounded-lg p-3">
+            <div className="theme-bg-tertiary rounded-lg p-3">
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-2 h-2 rounded-full bg-orange-500" />
-                <span className="text-xs text-zinc-400">Bitcoin ETF</span>
+                <span className="text-xs theme-text-secondary">Bitcoin ETF</span>
               </div>
               <p className={`text-lg font-bold ${isBtcPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                 {isBtcPositive ? '+' : ''}
                 {formatFlowFull(totals.btc)}
               </p>
             </div>
-            <div className="bg-zinc-800/50 rounded-lg p-3">
+            <div className="theme-bg-tertiary rounded-lg p-3">
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-2 h-2 rounded-full bg-blue-500" />
-                <span className="text-xs text-zinc-400">Ethereum ETF</span>
+                <span className="text-xs theme-text-secondary">Ethereum ETF</span>
               </div>
               <p className={`text-lg font-bold ${isEthPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                 {isEthPositive ? '+' : ''}
@@ -299,15 +299,15 @@ export const CryptoETFNetFlow = memo(function CryptoETFNetFlow() {
           <div className="flex items-center justify-center gap-6 mt-3">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-orange-500" />
-              <span className="text-xs text-zinc-400">BTC ETF</span>
+              <span className="text-xs theme-text-secondary">BTC ETF</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-blue-500" />
-              <span className="text-xs text-zinc-400">ETH ETF</span>
+              <span className="text-xs theme-text-secondary">ETH ETF</span>
             </div>
           </div>
 
-          <p className="text-xs text-zinc-600 text-center mt-3">
+          <p className="text-xs theme-text-muted text-center mt-3">
             Nguồn: CoinMarketCap • {timeframe === '30D' ? 'Daily' : 'Weekly'} data
           </p>
         </>

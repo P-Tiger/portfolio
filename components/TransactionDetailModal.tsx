@@ -65,22 +65,22 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70" />
       <div
-        className="relative bg-zinc-900 border border-zinc-700 rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[90dvh] sm:max-h-[85vh] overflow-hidden flex flex-col animate-modal-in will-change-transform"
+        className="relative theme-bg-secondary theme-border-light border rounded-t-2xl sm:rounded-2xl w-full max-w-lg max-h-[90dvh] sm:max-h-[85vh] overflow-hidden flex flex-col animate-modal-in will-change-transform"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between shrink-0">
+        <div className="px-5 py-4 border-b theme-border flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <span className="text-2xl">{getAssetIcon(asset.category, asset.symbol)}</span>
             <div>
-              <h2 className="text-lg font-semibold text-white">{asset.name}</h2>
+              <h2 className="text-lg font-semibold theme-text-primary">{asset.name}</h2>
               <div className="flex items-center gap-2 mt-0.5">
                 <CategoryBadge category={asset.category} />
-                {asset.symbol && <span className="text-xs text-zinc-500">{asset.symbol}</span>}
+                {asset.symbol && <span className="text-xs theme-text-muted">{asset.symbol}</span>}
               </div>
             </div>
           </div>
-          <button onClick={onClose} className="text-zinc-400 active:text-white p-1 rounded-lg active:bg-zinc-800">
+          <button onClick={onClose} className="theme-text-secondary active:theme-text-primary p-1 rounded-lg">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
@@ -88,14 +88,16 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
         </div>
 
         {/* P&L hiện tại */}
-        <div className="px-5 py-3 border-b border-zinc-800 shrink-0">
+        <div className="px-5 py-3 border-b theme-border shrink-0">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-zinc-500 text-xs">Giá trị hiện tại</p>
-              <p className="text-white font-bold text-lg">{formatMoney(currentValue, displayCurrency, usdToVndRate)}</p>
+              <p className="theme-text-muted text-xs">Giá trị hiện tại</p>
+              <p className="theme-text-primary font-bold text-lg">
+                {formatMoney(currentValue, displayCurrency, usdToVndRate)}
+              </p>
             </div>
             <div className="text-right">
-              <p className="text-zinc-500 text-xs">P&L</p>
+              <p className="theme-text-muted text-xs">P&L</p>
               <p className={`font-bold text-lg ${isPnlPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                 {isPnlPositive ? '+' : ''}
                 {formatMoney(asset.pnl, displayCurrency, usdToVndRate)}
@@ -109,50 +111,52 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
         </div>
 
         {/* Summary */}
-        <div className="px-5 py-3 border-b border-zinc-800 shrink-0">
+        <div className="px-5 py-3 border-b theme-border shrink-0">
           <div className="grid grid-cols-3 gap-3 text-sm">
             <div>
-              <p className="text-zinc-500 text-xs mb-0.5">Holdings</p>
-              <p className="text-white font-medium">{formatQuantity(asset.quantity)}</p>
+              <p className="theme-text-muted text-xs mb-0.5">Holdings</p>
+              <p className="theme-text-primary font-medium">{formatQuantity(asset.quantity)}</p>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs mb-0.5">Giá TT</p>
-              <p className="text-white font-medium">{formatMoney(asset.currentPrice, displayCurrency, usdToVndRate)}</p>
+              <p className="theme-text-muted text-xs mb-0.5">Giá TT</p>
+              <p className="theme-text-primary font-medium">
+                {formatMoney(asset.currentPrice, displayCurrency, usdToVndRate)}
+              </p>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs mb-0.5">Giá TB ròng</p>
-              <p className={`font-medium ${asset.buyPrice < 0 ? 'text-emerald-400' : 'text-white'}`}>
+              <p className="theme-text-muted text-xs mb-0.5">Giá TB ròng</p>
+              <p className={`font-medium ${asset.buyPrice < 0 ? 'text-emerald-400' : 'theme-text-primary'}`}>
                 {formatMoney(asset.buyPrice, displayCurrency, usdToVndRate)}
               </p>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs mb-0.5">Tổng vốn mua</p>
-              <p className="text-white font-medium">
+              <p className="theme-text-muted text-xs mb-0.5">Tổng vốn mua</p>
+              <p className="theme-text-primary font-medium">
                 {formatMoney(asset.totalCostGross, displayCurrency, usdToVndRate)}
               </p>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs mb-0.5">Tổng thu bán</p>
-              <p className="text-white font-medium">
+              <p className="theme-text-muted text-xs mb-0.5">Tổng thu bán</p>
+              <p className="theme-text-primary font-medium">
                 {formatMoney(asset.totalProceeds, displayCurrency, usdToVndRate)}
               </p>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs mb-0.5">Vốn ròng</p>
-              <p className="text-white font-medium">{formatMoney(netCost, displayCurrency, usdToVndRate)}</p>
+              <p className="theme-text-muted text-xs mb-0.5">Vốn ròng</p>
+              <p className="theme-text-primary font-medium">{formatMoney(netCost, displayCurrency, usdToVndRate)}</p>
             </div>
           </div>
         </div>
 
         {/* Transactions list */}
         <div className="overflow-y-auto flex-1">
-          <div className="px-5 py-3 border-b border-zinc-800 sticky top-0 bg-zinc-900">
-            <h3 className="text-sm font-medium text-zinc-400">Lịch sử giao dịch ({assetTxs.length})</h3>
+          <div className="px-5 py-3 border-b theme-border sticky top-0 theme-bg-secondary">
+            <h3 className="text-sm font-medium theme-text-secondary">Lịch sử giao dịch ({assetTxs.length})</h3>
           </div>
           {assetTxs.length === 0 ? (
-            <div className="px-5 py-8 text-center text-zinc-500 text-sm">Chưa có giao dịch</div>
+            <div className="px-5 py-8 text-center theme-text-muted text-sm">Chưa có giao dịch</div>
           ) : (
-            <div className="divide-y divide-zinc-800/50">
+            <div className="divide-y theme-border">
               {pagedTxs.map((tx) => {
                 const isBuy = tx.type === 'Buy';
                 const total = tx.quantity * tx.price;
@@ -163,7 +167,7 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
                 const isTxPnlPositive = txPnl >= 0;
 
                 return (
-                  <div key={tx.id} className="px-5 py-3 hover:bg-zinc-800/20">
+                  <div key={tx.id} className="px-5 py-3 hover:theme-bg-hover">
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
                         <span
@@ -173,33 +177,33 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
                         >
                           {tx.type}
                         </span>
-                        <span className="text-xs text-zinc-500">{tx.date}</span>
+                        <span className="text-xs theme-text-muted">{tx.date}</span>
                       </div>
-                      <span className={`text-sm font-medium ${isBuy ? 'text-zinc-300' : 'text-emerald-400'}`}>
+                      <span className={`text-sm font-medium ${isBuy ? 'theme-text-secondary' : 'text-emerald-400'}`}>
                         {isBuy ? '-' : '+'}
                         {formatMoney(total, displayCurrency, usdToVndRate)}
                       </span>
                     </div>
                     {showVndSubline && (
-                      <div className="text-right text-[11px] text-zinc-500 mb-1">
+                      <div className="text-right text-[11px] theme-text-muted mb-1">
                         {isBuy ? '-' : '+'}
                         {formatMoney(total, 'VND', usdToVndRate)} VND
                       </div>
                     )}
-                    <div className="flex items-center justify-between text-xs text-zinc-400">
+                    <div className="flex items-center justify-between text-xs theme-text-secondary">
                       <span>
                         {formatQuantity(tx.quantity)} x {formatMoney(tx.price, displayCurrency, usdToVndRate)}
                       </span>
-                      {tx.note && <span className="text-zinc-500 truncate ml-2 max-w-[150px]">{tx.note}</span>}
+                      {tx.note && <span className="theme-text-muted truncate ml-2 max-w-[150px]">{tx.note}</span>}
                     </div>
                     {showVndSubline && (
-                      <div className="text-[11px] text-zinc-500 mt-1">
+                      <div className="text-[11px] theme-text-muted mt-1">
                         {formatMoney(tx.price, 'VND', usdToVndRate)} VND / đơn vị
                       </div>
                     )}
                     {isBuy && asset.currentPrice > 0 && (
                       <div className="flex items-center justify-between text-xs mt-1">
-                        <span className="text-zinc-600">vs giá TT</span>
+                        <span className="theme-text-muted">vs giá TT</span>
                         <span className={isTxPnlPositive ? 'text-emerald-400' : 'text-red-400'}>
                           {isTxPnlPositive ? '+' : ''}
                           {formatMoney(txPnl, displayCurrency, usdToVndRate)}
@@ -218,21 +222,21 @@ export function TransactionDetailModal({ asset, transactions, displayCurrency, u
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="px-5 py-3 border-t border-zinc-800 flex items-center justify-between shrink-0">
+          <div className="px-5 py-3 border-t theme-border flex items-center justify-between shrink-0">
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300 active:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-3 py-1 text-xs font-medium rounded-md theme-bg-tertiary theme-text-secondary disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Trước
             </button>
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs theme-text-muted">
               {page + 1} / {totalPages}
             </span>
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300 active:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="px-3 py-1 text-xs font-medium rounded-md theme-bg-tertiary theme-text-secondary disabled:opacity-30 disabled:cursor-not-allowed"
             >
               Sau
             </button>

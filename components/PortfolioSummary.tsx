@@ -11,7 +11,11 @@ interface PortfolioSummaryProps {
   usdToVndRate: number;
 }
 
-export const PortfolioSummary = memo(function PortfolioSummary({ data, displayCurrency, usdToVndRate }: PortfolioSummaryProps) {
+export const PortfolioSummary = memo(function PortfolioSummary({
+  data,
+  displayCurrency,
+  usdToVndRate,
+}: PortfolioSummaryProps) {
   const isPnlPositive = data.totalPnl >= 0;
 
   const cards = [
@@ -19,13 +23,13 @@ export const PortfolioSummary = memo(function PortfolioSummary({ data, displayCu
       label: 'Tổng tài sản',
       value: data.totalValue,
       suffix: getCurrencyLabel(displayCurrency),
-      color: 'text-white',
+      color: 'theme-text-primary',
     },
     {
       label: 'Vốn ròng',
       value: data.totalCost,
       suffix: getCurrencyLabel(displayCurrency),
-      color: 'text-white',
+      color: 'theme-text-primary',
     },
     {
       label: 'Lời / Lỗ (P&L)',
@@ -39,7 +43,7 @@ export const PortfolioSummary = memo(function PortfolioSummary({ data, displayCu
       label: 'Số tài sản',
       value: data.assets.length,
       suffix: 'assets',
-      color: 'text-white',
+      color: 'theme-text-primary',
       isCount: true,
     },
   ];
@@ -49,9 +53,9 @@ export const PortfolioSummary = memo(function PortfolioSummary({ data, displayCu
       {cards.map((card, i) => (
         <div
           key={card.label}
-          className={`bg-zinc-900 border border-zinc-800 rounded-xl p-4 lg:p-5 hover:border-zinc-700 transition-colors`}
+          className={`theme-bg-card theme-border border rounded-xl p-4 lg:p-5 hover:theme-border-light transition-colors`}
         >
-          <p className="text-zinc-400 text-xs sm:text-sm mb-2">{card.label}</p>
+          <p className="theme-text-secondary text-xs sm:text-sm mb-2">{card.label}</p>
           <p className={`text-xl lg:text-2xl font-bold ${card.color}`}>
             {card.prefix}
             {card.isCount ? (
@@ -59,7 +63,7 @@ export const PortfolioSummary = memo(function PortfolioSummary({ data, displayCu
             ) : (
               <AnimatedNumber value={card.value} formatter={(v) => formatMoney(v, displayCurrency, usdToVndRate)} />
             )}
-            <span className="text-xs sm:text-sm text-zinc-500 ml-1 font-normal">{card.suffix}</span>
+            <span className="text-xs sm:text-sm theme-text-muted ml-1 font-normal">{card.suffix}</span>
           </p>
           {card.sub && <p className={`text-xs sm:text-sm mt-1 ${card.color}`}>{card.sub}</p>}
         </div>

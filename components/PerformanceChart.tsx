@@ -32,9 +32,9 @@ function CustomTooltip({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm">
-      <p className="text-zinc-400 text-xs">{label}</p>
-      <p className="font-medium text-white">
+    <div className="theme-bg-secondary theme-border-light border rounded-lg px-3 py-2 text-sm">
+      <p className="theme-text-secondary text-xs">{label}</p>
+      <p className="font-medium theme-text-primary">
         {formatMoney(payload[0].value, displayCurrency, usdToVndRate)} {getCurrencyLabel(displayCurrency)}
       </p>
     </div>
@@ -85,11 +85,11 @@ export function PerformanceChart({
   const strokeColor = isPositive ? '#10b981' : '#ef4444';
 
   return (
-    <div className="animate-fade-in bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+    <div className="animate-fade-in theme-bg-card theme-border border rounded-xl p-5">
       {/* Header row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-baseline gap-3">
-          <h2 className="text-lg font-semibold text-white">{title}</h2>
+          <h2 className="text-lg font-semibold theme-text-primary">{title}</h2>
           {hasData && !loading && (
             <div className="text-right sm:text-left">
               <span className={`text-sm font-bold ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -104,13 +104,13 @@ export function PerformanceChart({
           )}
         </div>
         {/* Timeframe selector */}
-        <div className="flex gap-1 bg-zinc-800/50 rounded-lg p-1">
+        <div className="flex gap-1 theme-bg-tertiary rounded-lg p-1">
           {TIMEFRAMES.map((tf) => (
             <button
               key={tf.key}
               onClick={() => startTfTransition(() => setActiveTimeframe(tf.key))}
               className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                activeTimeframe === tf.key ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                activeTimeframe === tf.key ? 'theme-btn-active shadow-sm' : 'theme-btn-inactive'
               }`}
             >
               {tf.label}
@@ -123,7 +123,7 @@ export function PerformanceChart({
       <div className="h-[300px]">
         {loading ? (
           <div className="h-full flex items-center justify-center">
-            <div className="flex items-center gap-2 text-zinc-500 text-sm">
+            <div className="flex items-center gap-2 theme-text-muted text-sm">
               <div className="w-4 h-4 border-2 border-zinc-600 border-t-zinc-400 rounded-full animate-spin" />
               Đang tải...
             </div>
@@ -131,8 +131,8 @@ export function PerformanceChart({
         ) : !hasData && data.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
-              <p className="text-zinc-400 text-sm mb-1">Chưa có dữ liệu lịch sử</p>
-              <p className="text-zinc-500 text-xs">Dữ liệu sẽ được ghi nhận hàng ngày</p>
+              <p className="theme-text-secondary text-sm mb-1">Chưa có dữ liệu lịch sử</p>
+              <p className="theme-text-muted text-xs">Dữ liệu sẽ được ghi nhận hàng ngày</p>
             </div>
           </div>
         ) : (

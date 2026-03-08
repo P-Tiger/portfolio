@@ -21,20 +21,20 @@ export const CategoryCards = memo(function CategoryCards({
         return (
           <div
             key={item.category}
-            className={`bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-colors`}
+            className={`theme-bg-card theme-border border rounded-xl p-4 hover:theme-border-light transition-colors`}
           >
             <div className="flex items-center gap-2 mb-3">
               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[item.category] }} />
-              <span className="text-sm text-zinc-400">{item.name}</span>
-              <span className="text-xs text-zinc-600 ml-auto">{item.count} assets</span>
+              <span className="text-sm theme-text-secondary">{item.name}</span>
+              <span className="text-xs theme-text-muted ml-auto">{item.count} assets</span>
             </div>
 
-            <p className="text-lg font-bold text-white mb-1">
+            <p className="text-lg font-bold theme-text-primary mb-1">
               <AnimatedNumber value={item.value} formatter={(v) => formatMoney(v, displayCurrency, usdToVndRate)} />
             </p>
 
-            <p className="text-xs text-zinc-500 mb-2">
-              Vốn: <span className="text-zinc-400">{formatMoney(item.cost, displayCurrency, usdToVndRate)}</span>
+            <p className="text-xs theme-text-muted mb-2">
+              Vốn: <span className="theme-text-secondary">{formatMoney(item.cost, displayCurrency, usdToVndRate)}</span>
             </p>
 
             <div className="flex items-center justify-between mb-2">
@@ -48,12 +48,12 @@ export const CategoryCards = memo(function CategoryCards({
               </span>
             </div>
 
-            <div className="flex items-center justify-between text-xs text-zinc-500 mb-2">
+            <div className="flex items-center justify-between text-xs theme-text-muted mb-2">
               <span>Tỷ trọng</span>
               <span>{item.percent.toFixed(1)}%</span>
             </div>
 
-            <div className="w-full bg-zinc-800 rounded-full h-1.5">
+            <div className="w-full theme-bg-tertiary rounded-full h-1.5">
               <div
                 className="h-1.5 rounded-full"
                 style={{

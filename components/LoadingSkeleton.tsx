@@ -2,34 +2,34 @@
 
 export function SkeletonCard() {
   return (
-    <div className="animate-fade-in bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-      <div className="h-3 bg-zinc-800 rounded w-24 mb-2 animate-pulse" />
-      <div className="h-6 bg-zinc-800 rounded w-32 animate-pulse" />
+    <div className="animate-fade-in theme-bg-card theme-border border rounded-xl p-4">
+      <div className="h-3 theme-bg-tertiary rounded w-24 mb-2 animate-pulse" />
+      <div className="h-6 theme-bg-tertiary rounded w-32 animate-pulse" />
     </div>
   );
 }
 
 export function SkeletonRow() {
   return (
-    <div className="flex items-center gap-4 p-4 border-b border-zinc-800">
-      <div className="h-10 w-10 bg-zinc-800 rounded animate-pulse" />
+    <div className="flex items-center gap-4 p-4 border-b theme-border">
+      <div className="h-10 w-10 theme-bg-tertiary rounded animate-pulse" />
       <div className="flex-1">
-        <div className="h-4 bg-zinc-800 rounded w-32 mb-2 animate-pulse" />
-        <div className="h-3 bg-zinc-800 rounded w-24 animate-pulse" />
+        <div className="h-4 theme-bg-tertiary rounded w-32 mb-2 animate-pulse" />
+        <div className="h-3 theme-bg-tertiary rounded w-24 animate-pulse" />
       </div>
-      <div className="h-6 bg-zinc-800 rounded w-28 animate-pulse" />
+      <div className="h-6 theme-bg-tertiary rounded w-28 animate-pulse" />
     </div>
   );
 }
 
 export function SkeletonChart() {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-      <div className="h-4 bg-zinc-800 rounded w-32 mb-4 animate-pulse" />
+    <div className="theme-bg-card theme-border border rounded-xl p-6">
+      <div className="h-4 theme-bg-tertiary rounded w-32 mb-4 animate-pulse" />
       <div className="space-y-2">
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="flex items-center gap-2">
-            <div className="h-8 bg-zinc-800 rounded flex-1 animate-pulse" />
+            <div className="h-8 theme-bg-tertiary rounded flex-1 animate-pulse" />
           </div>
         ))}
       </div>
@@ -61,9 +61,9 @@ export function OverviewTabSkeleton() {
       </div>
 
       {/* Asset Table */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-zinc-800">
-          <div className="h-4 bg-zinc-800 rounded w-32 animate-pulse" />
+      <div className="theme-bg-card theme-border border rounded-xl overflow-hidden">
+        <div className="p-4 border-b theme-border">
+          <div className="h-4 theme-bg-tertiary rounded w-32 animate-pulse" />
         </div>
         {[1, 2, 3, 4, 5].map((i) => (
           <SkeletonRow key={i} />
@@ -87,9 +87,9 @@ export function CategoryTabSkeleton() {
       <SkeletonChart />
 
       {/* Asset Table */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-zinc-800">
-          <div className="h-4 bg-zinc-800 rounded w-32 animate-pulse" />
+      <div className="theme-bg-card theme-border border rounded-xl overflow-hidden">
+        <div className="p-4 border-b theme-border">
+          <div className="h-4 theme-bg-tertiary rounded w-32 animate-pulse" />
         </div>
         {[1, 2, 3, 4, 5].map((i) => (
           <SkeletonRow key={i} />

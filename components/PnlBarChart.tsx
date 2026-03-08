@@ -19,13 +19,13 @@ function CustomTooltip({
   const d = payload[0].payload;
   const isPositive = d.pnl >= 0;
   return (
-    <div className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm">
-      <p className="font-medium text-white">{d.name}</p>
+    <div className="theme-bg-secondary theme-border-light border rounded-lg px-3 py-2 text-sm">
+      <p className="font-medium theme-text-primary">{d.name}</p>
       <p className={isPositive ? 'text-emerald-400' : 'text-red-400'}>
         {isPositive ? '+' : ''}
         {formatMoney(d.pnl, displayCurrency, usdToVndRate)} {getCurrencyLabel(displayCurrency)}
       </p>
-      <p className="text-zinc-400">
+      <p className="theme-text-muted">
         {isPositive ? '+' : ''}
         {d.pnlPercent.toFixed(1)}%
       </p>
@@ -54,16 +54,16 @@ export function PnlBarChart({
 
   if (data.length === 0) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-        <h2 className="text-lg font-semibold text-white mb-4">Lời / Lỗ theo tài sản</h2>
-        <div className="h-[300px] flex items-center justify-center text-zinc-600 text-sm">Chưa có dữ liệu</div>
+      <div className="theme-bg-card theme-border border rounded-xl p-5">
+        <h2 className="text-lg font-semibold theme-text-primary mb-4">Lời / Lỗ theo tài sản</h2>
+        <div className="h-[300px] flex items-center justify-center theme-text-muted text-sm">Chưa có dữ liệu</div>
       </div>
     );
   }
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-      <h2 className="text-lg font-semibold text-white mb-4">Lời / Lỗ theo tài sản</h2>
+    <div className="theme-bg-card theme-border border rounded-xl p-5">
+      <h2 className="text-lg font-semibold theme-text-primary mb-4">Lời / Lỗ theo tài sản</h2>
       <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ left: 10, right: 20 }}>

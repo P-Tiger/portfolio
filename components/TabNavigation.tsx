@@ -32,7 +32,7 @@ export const TabNavigation = memo(function TabNavigation({ active, onChange, cat
             onClick={() => onChange(tab.key)}
             className={`
               relative px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap
-              ${isActive ? 'text-white shadow-lg' : 'text-zinc-400 active:text-zinc-200 active:bg-zinc-800/50'}
+              ${isActive ? 'theme-text-primary shadow-lg' : 'theme-text-secondary active:theme-text-primary'}
             `}
             style={
               isActive
@@ -51,7 +51,9 @@ export const TabNavigation = memo(function TabNavigation({ active, onChange, cat
             )}
             {tab.label}
             {count !== undefined && count > 0 && (
-              <span className={`ml-1.5 text-xs ${isActive ? 'text-zinc-300' : 'text-zinc-500'}`}>{count}</span>
+              <span className={`ml-1.5 text-xs ${isActive ? 'theme-text-secondary' : 'theme-text-muted'}`}>
+                {count}
+              </span>
             )}
           </button>
         );

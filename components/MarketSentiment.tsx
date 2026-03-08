@@ -72,7 +72,7 @@ function GaugeChart({ value, label }: { value: number; label: string }) {
       <div className="absolute left-1/2 bottom-[15%] -translate-x-1/2 w-4 h-4 bg-white rounded-full shadow-lg" />
       <div className="absolute left-1/2 bottom-0 -translate-x-1/2 text-center">
         <span className={`text-3xl font-bold ${getSentimentTextColor(value)}`}>{value}</span>
-        <p className="text-xs text-zinc-400 mt-0.5">{label}</p>
+        <p className="text-xs theme-text-secondary mt-0.5">{label}</p>
       </div>
     </div>
   );
@@ -106,15 +106,15 @@ export const CryptoSentiment = memo(function CryptoSentiment() {
 
   if (loading) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 animate-pulse">
-        <div className="h-5 bg-zinc-800 rounded w-40 mb-4 mx-auto" />
-        <div className="h-[160px] bg-zinc-800 rounded" />
+      <div className="theme-bg-card theme-border border rounded-xl p-5 animate-pulse">
+        <div className="h-5 theme-bg-tertiary rounded w-40 mb-4 mx-auto" />
+        <div className="h-[160px] theme-bg-tertiary rounded" />
       </div>
     );
   }
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 transition-colors">
+    <div className="theme-bg-card theme-border border rounded-xl p-5 hover:theme-border-light transition-colors">
       <div className="flex items-center justify-center gap-2 mb-2">
         <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400">
           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -123,12 +123,12 @@ export const CryptoSentiment = memo(function CryptoSentiment() {
             <circle cx="12" cy="18" r="0.5" fill="currentColor" />
           </svg>
         </div>
-        <span className="text-base font-medium text-zinc-300">Crypto Fear & Greed</span>
+        <span className="text-base font-medium theme-text-secondary">Crypto Fear & Greed</span>
       </div>
       {data ? (
         <>
           <GaugeChart value={data.value} label={getClassificationVi(data.classification)} />
-          <div className="flex justify-between text-xs text-zinc-500 mt-2 px-2">
+          <div className="flex justify-between text-xs theme-text-muted mt-2 px-2">
             <span>Sợ Hãi</span>
             <span>Cập nhật: {data.timestamp}</span>
             <span>Tham Lam</span>
@@ -136,7 +136,7 @@ export const CryptoSentiment = memo(function CryptoSentiment() {
         </>
       ) : (
         <div className="h-[160px] flex items-center justify-center">
-          <p className="text-zinc-500 text-sm">Không có dữ liệu</p>
+          <p className="theme-text-muted text-sm">Không có dữ liệu</p>
         </div>
       )}
     </div>

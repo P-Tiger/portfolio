@@ -12,7 +12,7 @@ type SortDirection = 'asc' | 'desc';
 const PAGE_SIZE = 10;
 
 function SortIndicator({ active, direction }: { active: boolean; direction: SortDirection }) {
-  if (!active) return <span className="text-zinc-600 ml-1">⇅</span>;
+  if (!active) return <span className="theme-text-muted ml-1">⇅</span>;
   return <span className="text-emerald-400 ml-1">{direction === 'asc' ? '↑' : '↓'}</span>;
 }
 
@@ -71,25 +71,25 @@ export const AssetTable = memo(function AssetTable({
 
   if (assets.length === 0) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-8 text-center">
-        <p className="text-zinc-500">Chưa có tài sản nào</p>
+      <div className="theme-bg-card theme-border border rounded-xl p-8 text-center">
+        <p className="theme-text-muted">Chưa có tài sản nào</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden contain-layout">
-      <div className="px-5 py-4 border-b border-zinc-800">
-        <h2 className="text-lg font-semibold text-white">Chi tiết tài sản ({assets.length})</h2>
+    <div className="theme-bg-card theme-border border rounded-xl overflow-hidden contain-layout">
+      <div className="px-5 py-4 border-b theme-border">
+        <h2 className="text-lg font-semibold theme-text-primary">Chi tiết tài sản ({assets.length})</h2>
       </div>
 
       {/* Desktop table */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-zinc-800 text-zinc-400">
+            <tr className="border-b theme-border theme-text-secondary">
               <th
-                className="text-left px-5 py-3 font-medium cursor-pointer hover:text-zinc-200 transition-colors"
+                className="text-left px-5 py-3 font-medium cursor-pointer hover:theme-text-primary transition-colors"
                 onClick={() => handleSort('name')}
               >
                 <div className="flex items-center">
@@ -99,7 +99,7 @@ export const AssetTable = memo(function AssetTable({
               </th>
               {showCategory && (
                 <th
-                  className="text-left px-5 py-3 font-medium cursor-pointer hover:text-zinc-200 transition-colors"
+                  className="text-left px-5 py-3 font-medium cursor-pointer hover:theme-text-primary transition-colors"
                   onClick={() => handleSort('category')}
                 >
                   <div className="flex items-center">
@@ -109,7 +109,7 @@ export const AssetTable = memo(function AssetTable({
                 </th>
               )}
               <th
-                className="text-right px-5 py-3 font-medium cursor-pointer hover:text-zinc-200 transition-colors"
+                className="text-right px-5 py-3 font-medium cursor-pointer hover:theme-text-primary transition-colors"
                 onClick={() => handleSort('quantity')}
               >
                 <div className="flex items-center justify-end">
@@ -118,7 +118,7 @@ export const AssetTable = memo(function AssetTable({
                 </div>
               </th>
               <th
-                className="text-right px-5 py-3 font-medium cursor-pointer hover:text-zinc-200 transition-colors"
+                className="text-right px-5 py-3 font-medium cursor-pointer hover:theme-text-primary transition-colors"
                 onClick={() => handleSort('buyPrice')}
               >
                 <div className="flex items-center justify-end">
@@ -127,7 +127,7 @@ export const AssetTable = memo(function AssetTable({
                 </div>
               </th>
               <th
-                className="text-right px-5 py-3 font-medium cursor-pointer hover:text-zinc-200 transition-colors"
+                className="text-right px-5 py-3 font-medium cursor-pointer hover:theme-text-primary transition-colors"
                 onClick={() => handleSort('currentPrice')}
               >
                 <div className="flex items-center justify-end">
@@ -136,7 +136,7 @@ export const AssetTable = memo(function AssetTable({
                 </div>
               </th>
               <th
-                className="text-right px-5 py-3 font-medium cursor-pointer hover:text-zinc-200 transition-colors"
+                className="text-right px-5 py-3 font-medium cursor-pointer hover:theme-text-primary transition-colors"
                 onClick={() => handleSort('totalValue')}
               >
                 <div className="flex items-center justify-end">
@@ -145,7 +145,7 @@ export const AssetTable = memo(function AssetTable({
                 </div>
               </th>
               <th
-                className="text-right px-5 py-3 font-medium cursor-pointer hover:text-zinc-200 transition-colors"
+                className="text-right px-5 py-3 font-medium cursor-pointer hover:theme-text-primary transition-colors"
                 onClick={() => handleSort('pnl')}
               >
                 <div className="flex items-center justify-end">
@@ -163,13 +163,13 @@ export const AssetTable = memo(function AssetTable({
                 <tr
                   key={asset.id}
                   onClick={() => setSelectedAsset(asset)}
-                  className={`border-b border-zinc-800/50 hover:bg-zinc-800/30 cursor-pointer ${isSoldOut ? 'opacity-50' : ''}`}
+                  className={`border-b theme-border hover:theme-bg-hover cursor-pointer ${isSoldOut ? 'opacity-50' : ''}`}
                 >
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{getAssetIcon(asset.category, asset.symbol)}</span>
                       <div>
-                        <span className="text-white font-medium">{asset.name}</span>
+                        <span className="theme-text-primary font-medium">{asset.name}</span>
                         {asset.change24h !== 0 && (
                           <span
                             className={`ml-2 text-xs ${asset.change24h >= 0 ? 'text-emerald-400/70' : 'text-red-400/70'}`}
@@ -178,7 +178,7 @@ export const AssetTable = memo(function AssetTable({
                             {asset.change24h.toFixed(1)}%
                           </span>
                         )}
-                        {asset.note && <span className="block text-xs text-zinc-500 mt-0.5">{asset.note}</span>}
+                        {asset.note && <span className="block text-xs theme-text-muted mt-0.5">{asset.note}</span>}
                       </div>
                     </div>
                   </td>
@@ -187,14 +187,16 @@ export const AssetTable = memo(function AssetTable({
                       <CategoryBadge category={asset.category} />
                     </td>
                   )}
-                  <td className="px-5 py-3 text-right text-zinc-300">{formatQuantity(asset.quantity)}</td>
-                  <td className={`px-5 py-3 text-right ${asset.buyPrice < 0 ? 'text-emerald-400' : 'text-zinc-300'}`}>
+                  <td className="px-5 py-3 text-right theme-text-secondary">{formatQuantity(asset.quantity)}</td>
+                  <td
+                    className={`px-5 py-3 text-right ${asset.buyPrice < 0 ? 'text-emerald-400' : 'theme-text-secondary'}`}
+                  >
                     {formatMoney(asset.buyPrice, displayCurrency, usdToVndRate)}
                   </td>
-                  <td className="px-5 py-3 text-right text-zinc-300">
+                  <td className="px-5 py-3 text-right theme-text-secondary">
                     {formatMoney(asset.currentPrice, displayCurrency, usdToVndRate)}
                   </td>
-                  <td className="px-5 py-3 text-right text-white font-medium">
+                  <td className="px-5 py-3 text-right theme-text-primary font-medium">
                     {formatMoney(asset.totalValue, displayCurrency, usdToVndRate)}
                   </td>
                   <td className="px-5 py-3 text-right">
@@ -216,7 +218,7 @@ export const AssetTable = memo(function AssetTable({
 
       {/* Mobile cards with sort options */}
       <div className="md:hidden">
-        <div className="px-5 py-3 border-b border-zinc-800 flex gap-2 overflow-x-auto scrollbar-none">
+        <div className="px-5 py-3 border-b theme-border flex gap-2 overflow-x-auto scrollbar-none">
           {[
             { key: 'totalValue' as SortKey, label: 'Giá trị' },
             { key: 'pnl' as SortKey, label: 'P&L' },
@@ -229,16 +231,14 @@ export const AssetTable = memo(function AssetTable({
               key={option.key}
               onClick={() => handleSort(option.key)}
               className={`px-3 py-1 text-xs font-medium rounded-md whitespace-nowrap ${
-                sortKey === option.key
-                  ? 'bg-emerald-400/20 text-emerald-400'
-                  : 'bg-zinc-800/50 text-zinc-400 active:text-zinc-200'
+                sortKey === option.key ? 'bg-emerald-400/20 text-emerald-400' : 'theme-bg-tertiary theme-text-secondary'
               }`}
             >
               {option.label} {sortKey === option.key && (sortDirection === 'asc' ? '↑' : '↓')}
             </button>
           ))}
         </div>
-        <div className="divide-y divide-zinc-800/50">
+        <div className="divide-y theme-border">
           {pagedAssets.map((asset, i) => {
             const isPnlPositive = asset.pnl >= 0;
             const isSoldOut = asset.quantity <= 0;
@@ -246,13 +246,13 @@ export const AssetTable = memo(function AssetTable({
               <div
                 key={asset.id}
                 onClick={() => setSelectedAsset(asset)}
-                className={`p-4 hover:bg-zinc-800/20 cursor-pointer ${isSoldOut ? 'opacity-50' : ''}`}
+                className={`p-4 hover:theme-bg-hover cursor-pointer ${isSoldOut ? 'opacity-50' : ''}`}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-start gap-2">
                     <span className="text-xl">{getAssetIcon(asset.category, asset.symbol)}</span>
                     <div>
-                      <span className="text-white font-medium">{asset.name}</span>
+                      <span className="theme-text-primary font-medium">{asset.name}</span>
                       {showCategory && (
                         <span className="ml-2">
                           <CategoryBadge category={asset.category} />
@@ -269,23 +269,25 @@ export const AssetTable = memo(function AssetTable({
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <span className="text-zinc-500">Giá trị: </span>
-                    <span className="text-white">{formatMoney(asset.totalValue, displayCurrency, usdToVndRate)}</span>
+                    <span className="theme-text-muted">Giá trị: </span>
+                    <span className="theme-text-primary">
+                      {formatMoney(asset.totalValue, displayCurrency, usdToVndRate)}
+                    </span>
                   </div>
                   <div className="text-right">
-                    <span className="text-zinc-500">P&L: </span>
+                    <span className="theme-text-muted">P&L: </span>
                     <span className={isPnlPositive ? 'text-emerald-400' : 'text-red-400'}>
                       {isPnlPositive ? '+' : ''}
                       {formatMoney(asset.pnl, displayCurrency, usdToVndRate)}
                     </span>
                   </div>
                   <div>
-                    <span className="text-zinc-500">SL: </span>
-                    <span className="text-zinc-300">{formatQuantity(asset.quantity)}</span>
+                    <span className="theme-text-muted">SL: </span>
+                    <span className="theme-text-secondary">{formatQuantity(asset.quantity)}</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-zinc-500">Giá TT: </span>
-                    <span className="text-zinc-300">
+                    <span className="theme-text-muted">Giá TT: </span>
+                    <span className="theme-text-secondary">
                       {formatMoney(asset.currentPrice, displayCurrency, usdToVndRate)}
                     </span>
                   </div>
@@ -297,21 +299,21 @@ export const AssetTable = memo(function AssetTable({
       </div>
 
       {totalPages > 1 && (
-        <div className="px-5 py-3 border-t border-zinc-800 flex items-center justify-between">
+        <div className="px-5 py-3 border-t theme-border flex items-center justify-between">
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={safePage === 0}
-            className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300 active:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="px-3 py-1 text-xs font-medium rounded-md theme-bg-tertiary theme-text-secondary disabled:opacity-30 disabled:cursor-not-allowed"
           >
             Trước
           </button>
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs theme-text-muted">
             {safePage + 1} / {totalPages}
           </span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={safePage >= totalPages - 1}
-            className="px-3 py-1 text-xs font-medium rounded-md bg-zinc-800 text-zinc-300 active:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="px-3 py-1 text-xs font-medium rounded-md theme-bg-tertiary theme-text-secondary disabled:opacity-30 disabled:cursor-not-allowed"
           >
             Sau
           </button>

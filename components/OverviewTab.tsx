@@ -11,15 +11,15 @@ import { CryptoETFNetFlow } from './CryptoETFNetFlow';
 
 const AllocationChart = dynamic(() => import('./AllocationChart').then((m) => ({ default: m.AllocationChart })), {
   ssr: false,
-  loading: () => <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-[380px]" />,
+  loading: () => <div className="theme-bg-card theme-border border rounded-xl p-5 h-[380px]" />,
 });
 const PnlBarChart = dynamic(() => import('./PnlBarChart').then((m) => ({ default: m.PnlBarChart })), {
   ssr: false,
-  loading: () => <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-[380px]" />,
+  loading: () => <div className="theme-bg-card theme-border border rounded-xl p-5 h-[380px]" />,
 });
 const PerformanceChart = dynamic(() => import('./PerformanceChart').then((m) => ({ default: m.PerformanceChart })), {
   ssr: false,
-  loading: () => <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-[380px]" />,
+  loading: () => <div className="theme-bg-card theme-border border rounded-xl p-5 h-[380px]" />,
 });
 
 export function OverviewTab({

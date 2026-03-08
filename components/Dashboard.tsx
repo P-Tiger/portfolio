@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { CategoryTab } from './CategoryTab';
 import { OverviewTab } from './OverviewTab';
 import { TabKey, TabNavigation } from './TabNavigation';
+import { ThemeSwitcher } from './ThemeSwitcher';
 
 interface Props {
   data: PortfolioData;
@@ -51,30 +52,31 @@ export function Dashboard({ data, refreshIntervalSec, onRefreshIntervalChange }:
   return (
     <>
       <div className="mb-6 flex items-center justify-end gap-3">
-        <div className="bg-zinc-900 border border-zinc-700 rounded-md p-0.5 flex items-center">
+        <ThemeSwitcher />
+        <div className="theme-switcher flex items-center">
           <button
             onClick={() => handleCurrencyChange('VND')}
-            className={`px-2.5 py-1 text-xs rounded ${
-              displayCurrency === 'VND' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-200'
+            className={`px-2.5 py-1 text-xs rounded transition-all ${
+              displayCurrency === 'VND' ? 'theme-btn-active' : 'theme-btn-inactive'
             }`}
           >
             VND
           </button>
           <button
             onClick={() => handleCurrencyChange('USD')}
-            className={`px-2.5 py-1 text-xs rounded ${
-              displayCurrency === 'USD' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-zinc-200'
+            className={`px-2.5 py-1 text-xs rounded transition-all ${
+              displayCurrency === 'USD' ? 'theme-btn-active' : 'theme-btn-inactive'
             }`}
           >
             USD
           </button>
         </div>
-        <label className="flex items-center gap-2 text-xs text-zinc-400">
+        <label className="flex items-center gap-2 text-xs theme-text-secondary">
           Chu kỳ làm mới
           <select
             value={refreshIntervalSec}
             onChange={(e) => onRefreshIntervalChange(Number(e.target.value))}
-            className="bg-zinc-900 border border-zinc-700 rounded-md px-2 py-1 text-xs text-zinc-200"
+            className="theme-bg-secondary theme-border border rounded-md px-2 py-1 text-xs theme-text-primary"
           >
             <option value={15}>15s</option>
             <option value={30}>30s</option>
@@ -82,12 +84,8 @@ export function Dashboard({ data, refreshIntervalSec, onRefreshIntervalChange }:
           </select>
         </label>
       </div>
-      <div className="mb-6 bg-zinc-900/50 border border-zinc-800 rounded-xl p-2">
-        <TabNavigation
-          active={activeTab}
-          onChange={handleTabChange}
-          categoryCounts={categoryCounts}
-        />
+      <div className="mb-6 theme-bg-card theme-border border rounded-xl p-2">
+        <TabNavigation active={activeTab} onChange={handleTabChange} categoryCounts={categoryCounts} />
       </div>
 
       {activeTab === 'overview' ? (
