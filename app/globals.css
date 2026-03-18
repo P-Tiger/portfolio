@@ -93,7 +93,9 @@ body {
   box-shadow: var(--card-shadow);
 }
 
-[data-theme='liquid-glass'] .theme-bg-card {
+[data-theme='liquid-glass'] .theme-bg-card,
+[data-theme='liquid-glass'] .theme-bg-secondary,
+[data-theme='liquid-glass'] .theme-bg-tertiary {
   backdrop-filter: var(--backdrop-blur);
   -webkit-backdrop-filter: var(--backdrop-blur);
 }
@@ -155,6 +157,17 @@ body {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Liquid-glass modal panel - stronger glass effect for better readability */
+[data-theme='liquid-glass'] .animate-modal-in {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* Modal open state - prevents body scroll without layout thrashing */
